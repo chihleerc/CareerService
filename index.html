@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>致生涯．理未來 職涯輔導管理系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#023e8a',
+                            hover: '#012a65',
+                            light: '#e6edf1'
+                        },
+                        status: {
+                            ongoing: '#0077b6',
+                            ongoingBg: '#e0f2fe',
+                            done: '#38b000',
+                            doneBg: '#dcfce7',
+                            warning: '#fb8500',
+                            warningBg: '#ffedd5',
+                            danger: '#ff686b',
+                            dangerBg: '#ffe4e6'
+                        },
+                        neutral: {
+                            bg: '#f8fafc',
+                            text: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 隱藏手機版分頁標籤滑動條 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        body { font-family: 'Noto Sans TC', sans-serif; overflow-y: scroll; background-color: #f8fafc; color: #1e293b; }
+        
+        .dense-table th, .dense-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            border-right: 1px solid #f3f4f6;
+            font-size: 0.8125rem;
+            white-space: nowrap;
+        }
+        .dense-table th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .dense-table th:hover { z-index: 60; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Tooltip 修復 (避免被表格 overflow 截斷) */
+        .has-tooltip { position: relative; display: inline-flex; align-items: center; cursor: help; }
+        .tooltip-box {
+            display: none; position: absolute; width: max-content; max-width: 280px;
+            background-color: #023e8a; color: #fff; text-align: left; border-radius: 6px;
+            padding: 10px; font-size: 12px; z-index: 70; white-space: normal;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            top: 100%; left: 0; margin-top: 6px; pointer-events: none;
+        }
+        .has-tooltip:hover .tooltip-box { display: block; }
+        .tooltip-box-right { left: auto; right: 0; }
+        .tooltip-box-down { left: 50%; transform: translateX(-50%); }
+
+        /* Tab 2 Matrix Sticky Config */
+        #tab2-table thead th:nth-child(1), #tab2-table tbody td:nth-child(1) { position: sticky; left: 0; min-width: 60px; z-index: 11; background-color: inherit; }
+        #tab2-table thead th:nth-child(2), #tab2-table tbody td:nth-child(2) { position: sticky; left: 60px; min-width: 80px; z-index: 11; background-color: inherit; }
+        #tab2-table thead th:nth-child(3), #tab2-table tbody td:nth-child(3) { position: sticky; left: 140px; min-width: 80px; z-index: 11; background-color: inherit; box-shadow: inset -3px 0 5px -3px rgba(0,0,0,0.15); border-right: 1px solid #cbd5e1; }
+        #tab2-table thead th:nth-child(1), #tab2-table thead th:nth-child(2), #tab2-table thead th:nth-child(3) { z-index: 12; background-color: #f8fafc; }
+        #tab2-table tbody tr { background-color: #fff; transition: background-color 0.15s; }
+        #tab2-table tbody tr:hover { background-color: #f8fafc; }
+        #tab2-table tfoot td:nth-child(1) { position: sticky; left: 0; z-index: 11; background-color: inherit; box-shadow: inset -3px 0 5px -3px rgba(0,0,0,0.15); border-right: 1px solid rgba(0,0,0,0.1); }
+        
+        .act-header-text { max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; cursor: pointer; }
+        .act-header-text:hover { color: #023e8a; text-decoration: underline; }
+
+        /* Calendar Grid */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .cal-cell { min-height: 52px; display: flex; flex-direction: column; padding: 4px; border-radius: 8px; transition: all 0.2s; position: relative; border: 1px solid transparent; }
+        .cal-cell:hover:not(.empty) { background-color: #f1f5f9; cursor: pointer; }
+        .cal-cell.empty { pointer-events: none; opacity: 0; }
+        
+        /* Drag and Drop styles for Time Slots */
+        .time-slot-item.dragging { opacity: 0.5; border: 2px dashed #818cf8; background-color: #f8fafc; }
+        .time-slot-item.drag-over { border-top: 2px solid #4f46e5; padding-top: 10px; }
+
+        /* Overlays */
+        #login-overlay { z-index: 100; }
+        #loading-overlay { z-index: 110; }
+        
+        .text-brand { color: #023e8a; }
+        .bg-brand { background-color: #023e8a; }
+        .hover-bg-brand:hover { background-color: #012a65; }
+        .ring-brand:focus { --tw-ring-color: #023e8a; }
+        .border-brand:focus { border-color: #023e8a; }
+        
+        .status-ongoing-text { color: #0077b6; }
+        .status-ongoing-bg { background-color: #e0f2fe; }
+        .status-done-text { color: #38b000; }
+        .status-done-bg { background-color: #dcfce7; }
+        .status-warning-text { color: #fb8500; }
+        .status-warning-bg { background-color: #ffedd5; }
+        .status-danger-text { color: #ff686b; }
+        .status-danger-bg { background-color: #ffe4e6; }
+        /* =========================================================
+           2026 UI REFRESH — visual layer only
+           保留所有功能、DOM id、事件與 JavaScript 邏輯
+           ========================================================= */
+        :root {
+            --ui-brand: #023e8a;
+            --ui-brand-hover: #012a65;
+            --ui-brand-soft: #edf4f8;
+            --ui-brand-soft-2: #f4f8fb;
+            --ui-canvas: #f5f7f9;
+            --ui-surface: #ffffff;
+            --ui-border: #dce5ea;
+            --ui-border-strong: #cbd8e0;
+            --ui-text: #243746;
+            --ui-muted: #687b88;
+            --ui-muted-light: #94a3ad;
+            --ui-shadow: 0 1px 2px rgba(24, 52, 72, .04), 0 6px 20px rgba(24, 52, 72, .045);
+            --ui-shadow-lg: 0 18px 48px rgba(20, 45, 62, .16);
+            --ui-radius: 12px;
+            --ui-radius-lg: 16px;
+            --ui-success: #38b000;
+            --ui-success-bg: #eef9ea;
+            --ui-warning: #fb8500;
+            --ui-warning-bg: #fff5e8;
+            --ui-danger: #ff686b;
+            --ui-danger-bg: #fff0f1;
+            --ui-info: #0077b6;
+            --ui-info-bg: #eaf6fb;
+        }
+
+        html { background: var(--ui-canvas); }
+        body {
+            background: var(--ui-canvas) !important;
+            color: var(--ui-text) !important;
+            letter-spacing: .005em;
+        }
+
+        /* ---------- global scrollbar ---------- */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #eef2f4; }
+        ::-webkit-scrollbar-thumb { background: #bccad3; border-radius: 999px; border: 2px solid #eef2f4; }
+        ::-webkit-scrollbar-thumb:hover { background: #91a4b1; }
+
+        /* ---------- brand + status palette ---------- */
+        .text-brand { color: var(--ui-brand) !important; }
+        .bg-brand { background-color: var(--ui-brand) !important; }
+        .bg-brand-light { background-color: var(--ui-brand-soft) !important; }
+        .hover-bg-brand:hover { background-color: var(--ui-brand-hover) !important; }
+        .ring-brand:focus { --tw-ring-color: rgba(2, 62, 138, .20) !important; }
+        .border-brand:focus { border-color: var(--ui-brand) !important; }
+
+        .status-ongoing-text { color: var(--ui-info) !important; }
+        .status-ongoing-bg { background-color: var(--ui-info-bg) !important; }
+        .status-done-text { color: var(--ui-success) !important; }
+        .status-done-bg { background-color: var(--ui-success-bg) !important; }
+        .status-warning-text { color: var(--ui-warning) !important; }
+        .status-warning-bg { background-color: var(--ui-warning-bg) !important; }
+        .status-danger-text { color: #d94f54 !important; }
+        .status-danger-bg { background-color: var(--ui-danger-bg) !important; }
+
+        /* ---------- header ---------- */
+        header.bg-brand {
+            background: #123e5b !important;
+            box-shadow: 0 1px 0 rgba(255,255,255,.08), 0 8px 24px rgba(18, 48, 68, .10) !important;
+        }
+        header > div:first-child { padding-top: 14px !important; padding-bottom: 12px !important; }
+        header .w-12.h-12 {
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+            border: 1px solid rgba(255,255,255,.55);
+        }
+        header h1 { letter-spacing: .02em; }
+        header p.text-indigo-200 { color: #c5d9e5 !important; }
+
+        #global-year-select {
+            background: #ffffff !important;
+            color: var(--ui-brand) !important;
+            border-color: rgba(255,255,255,.7) !important;
+            border-radius: 8px !important;
+            min-height: 30px;
+        }
+        #global-year-select:focus { box-shadow: 0 0 0 3px rgba(255,255,255,.14); }
+        #global-year-select option { color: var(--ui-text); background: white; }
+        #global-year-select + * { color: inherit; }
+        header .fa-calendar-days { color: #a9d6e5 !important; }
+        header div[style*="background-color: rgba(2, 48, 71"] {
+            background: rgba(6, 35, 52, .42) !important;
+            border-color: rgba(255,255,255,.14) !important;
+            box-shadow: none !important;
+            border-radius: 10px !important;
+        }
+        header div[style*="background-color: rgba(2, 48, 71"] > span { color: #d9e8ef !important; }
+        header button[onclick="location.reload()"] {
+            background: rgba(255,255,255,.08) !important;
+            border-color: rgba(255,255,255,.16) !important;
+            border-radius: 9px !important;
+            box-shadow: none !important;
+        }
+        header button[onclick="location.reload()"]:hover { background: rgba(255,255,255,.15) !important; }
+
+        header > div:last-child {
+            gap: 4px !important;
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
+            border-top-color: rgba(255,255,255,.10) !important;
+        }
+        header [id^="nav-tab"] {
+            border-bottom-width: 0 !important;
+            border-radius: 9px !important;
+            margin: 3px 0 !important;
+            padding-top: 9px !important;
+            padding-bottom: 9px !important;
+            color: #c9d7df !important;
+            transition: background-color .16s ease, color .16s ease !important;
+        }
+        header [id^="nav-tab"]:hover { background: rgba(255,255,255,.07) !important; color: #fff !important; }
+        header [id^="nav-tab"].border-amber-400 {
+            background: #ffffff !important;
+            color: #123e5b !important;
+            box-shadow: 0 1px 5px rgba(4, 24, 37, .12);
+        }
+        header [id^="nav-tab"].border-amber-400 i { color: var(--ui-brand) !important; }
+
+        /* ---------- main layout ---------- */
+        main { padding-top: 22px !important; padding-bottom: 34px !important; }
+        main > section { gap: 16px; }
+
+        /* top-level cards / panels */
+        main > section > .bg-white,
+        main > section > .grid > .bg-white,
+        main > section > div > .bg-white,
+        #tab5 > div,
+        #tab5 > div > .bg-white {
+            border-color: var(--ui-border) !important;
+            box-shadow: var(--ui-shadow) !important;
+        }
+        main > section > .bg-white,
+        main > section > .grid > .bg-white,
+        main > section > div > .bg-white { border-radius: var(--ui-radius) !important; }
+
+        /* ---------- dashboard ---------- */
+        #tab5 > div {
+            background: #eef3f6 !important;
+            border-color: #dce5ea !important;
+            border-radius: 18px !important;
+            padding: 18px !important;
+            gap: 18px !important;
+        }
+        #tab5 > div > .bg-white {
+            border-radius: 14px !important;
+            border-color: var(--ui-border) !important;
+            padding: 18px !important;
+        }
+        #agenda-header-title { color: var(--ui-brand) !important; font-size: 1.35rem !important; }
+        #agenda-today-date { color: var(--ui-muted) !important; }
+        #agenda-today-list > div {
+            border-color: var(--ui-border) !important;
+            box-shadow: none !important;
+        }
+        #agenda-today-list > div:hover { border-color: #b8ccd8 !important; box-shadow: 0 6px 16px rgba(26, 59, 80, .07) !important; }
+        #agenda-today-list .text-\[\#D9534F\] { color: var(--ui-info) !important; }
+        #agenda-today-list .text-\[\#2B3674\] { color: var(--ui-text) !important; }
+        #agenda-today-list .bg-\[\#F8F9FC\] { background-color: #f8fafb !important; }
+        #agenda-today-list .border-\[\#E9EEF7\] { border-color: var(--ui-border) !important; }
+
+        .cal-cell {
+            border-radius: 9px !important;
+            color: #425564;
+        }
+        .cal-cell:hover:not(.empty) { background-color: #f0f5f8 !important; }
+        .cal-cell.border-brand { background: var(--ui-brand-soft) !important; border-color: #aac6d5 !important; box-shadow: none !important; }
+        .cal-cell.border-red-400 { border-color: #f0a3a5 !important; }
+
+        /* ---------- KPI cards ---------- */
+        #tab1 > .grid > div {
+            min-height: 118px;
+            padding: 17px !important;
+            border-radius: 13px !important;
+            box-shadow: var(--ui-shadow) !important;
+        }
+        #tab1 > .grid > div:nth-child(1) { border-color: #d8e5ec !important; }
+        #tab1 > .grid > div:nth-child(2) { border-color: #f2d8da !important; }
+        #tab1 > .grid > div:nth-child(3) { border-color: #f1dfc5 !important; }
+        #tab1 > .grid .text-2xl { letter-spacing: -.02em; }
+
+        /* ---------- buttons ---------- */
+        button, select, input, textarea { font-family: inherit; }
+        button { outline: none; }
+        main button[class*="bg-brand"],
+        form button[class*="bg-brand"] {
+            box-shadow: none !important;
+            border-radius: 9px !important;
+        }
+        main button[class*="bg-brand"]:hover,
+        form button[class*="bg-brand"]:hover { transform: translateY(-1px); }
+        button[style*="background-color: #38b000"] {
+            background-color: #2f9d43 !important;
+            box-shadow: none !important;
+            border-radius: 9px !important;
+        }
+        button[style*="background-color: #0077b6"] {
+            background-color: #1976a3 !important;
+            box-shadow: none !important;
+            border-radius: 9px !important;
+        }
+        button.bg-slate-200,
+        button.bg-slate-100 { border-radius: 9px !important; }
+
+        /* ---------- filter/tool bars ---------- */
+        #tab1 > div.bg-white:not(.grid),
+        #tab2 > div.bg-white,
+        #tab3 > div.bg-white,
+        #tab4 > div.bg-white {
+            border-color: var(--ui-border) !important;
+        }
+        #tab1 > div:nth-of-type(2),
+        #tab4 > div:nth-of-type(2) { background: #fbfcfd !important; }
+
+        /* ---------- form controls ---------- */
+        input:not([type="checkbox"]):not([type="radio"]),
+        select,
+        textarea {
+            border-color: var(--ui-border-strong) !important;
+            border-radius: 9px !important;
+            color: var(--ui-text) !important;
+            box-shadow: none !important;
+        }
+        input:not([type="checkbox"]):not([type="radio"]):focus,
+        select:focus,
+        textarea:focus {
+            border-color: #6ea0bc !important;
+            box-shadow: 0 0 0 3px rgba(2, 62, 138, .09) !important;
+            outline: none !important;
+        }
+        input.bg-slate-50, select.bg-slate-50, textarea.bg-slate-50 { background: #fbfcfd !important; }
+        input.bg-slate-100, select.bg-slate-100 { background: #f1f4f6 !important; }
+        input::placeholder, textarea::placeholder { color: #9aa9b2 !important; }
+        input[type="checkbox"] { accent-color: var(--ui-brand); }
+
+        /* ---------- tables ---------- */
+        .dense-table { border-collapse: separate; border-spacing: 0; }
+        .dense-table th,
+        .dense-table td {
+            border-bottom-color: #e6ecef !important;
+            border-right-color: #edf1f3 !important;
+            padding: 9px 10px !important;
+        }
+        .dense-table th {
+            background: #f1f5f7 !important;
+            color: #465b69 !important;
+            font-weight: 700 !important;
+            box-shadow: inset 0 -1px 0 #d9e2e7;
+        }
+        .dense-table tbody tr { background: #fff; }
+        .dense-table tbody tr:hover { background: #f8fafb !important; }
+        .dense-table tbody tr:hover td { background-color: transparent; }
+        .dense-table td.bg-slate-50,
+        .dense-table td.bg-slate-50\/50 { background: #f8fafb !important; }
+
+        #tab1-table th.bg-indigo-50\/50,
+        #tab3-table th.bg-indigo-50,
+        #tab3-table td.bg-indigo-50\/50 { background: #edf4f8 !important; color: #31556a !important; }
+        #tab1-table th.bg-emerald-50\/70,
+        #tab3-table th.bg-emerald-50,
+        #tab3-table td.bg-emerald-50\/40 { background: #f1f8f2 !important; color: #3b6e46 !important; }
+        #tab3-table th.bg-amber-50,
+        #tab3-table td.bg-amber-50\/50 { background: #fff7ec !important; color: #7f5a22 !important; }
+        #tab3-table th.bg-sky-50,
+        #tab3-table td.bg-sky-50\/30 { background: #f3f8fa !important; }
+
+        /* sticky cells keep the same neutral visual */
+        #tab2-table thead th:nth-child(1),
+        #tab2-table thead th:nth-child(2),
+        #tab2-table thead th:nth-child(3) { background: #f1f5f7 !important; }
+        #tab2-table tbody td:nth-child(1),
+        #tab2-table tbody td:nth-child(2),
+        #tab2-table tbody td:nth-child(3) { background: #fff !important; }
+        #tab2-table tbody tr:hover td:nth-child(1),
+        #tab2-table tbody tr:hover td:nth-child(2),
+        #tab2-table tbody tr:hover td:nth-child(3) { background: #f8fafb !important; }
+        #tab2-table th.bg-indigo-50\/80 { background: #edf4f8 !important; border-bottom-color: #c6dce7 !important; }
+        #tab2-table th.bg-slate-100 { background: #f1f5f7 !important; }
+        #tab2-table tfoot tr.bg-brand { background: #164f6f !important; }
+
+        /* ---------- badges / pills ---------- */
+        #computed-status-badge,
+        .dense-table [class*="status-"][class*="bg"] { box-shadow: none !important; }
+        .dense-table .rounded,
+        .dense-table .rounded-full { border-radius: 7px !important; }
+
+        /* ---------- tooltips ---------- */
+        .tooltip-box {
+            background: #173d55 !important;
+            border-radius: 9px !important;
+            padding: 10px 12px !important;
+            box-shadow: 0 10px 30px rgba(17, 45, 63, .22) !important;
+        }
+
+        /* ---------- modal ---------- */
+        #recordModal,
+        #studentModal,
+        #batchImportModal,
+        #addStudentToTab2Modal,
+        #addActivityModal,
+        #editActivityModal,
+        #customConfirmModal {
+            background: rgba(16, 37, 51, .58) !important;
+            backdrop-filter: blur(5px);
+        }
+        #recordModal > div,
+        #studentModal > div,
+        #batchImportModal > div,
+        #addStudentToTab2Modal > div,
+        #addActivityModal > div,
+        #editActivityModal > div,
+        #customConfirmModal > div {
+            border-color: rgba(255,255,255,.75) !important;
+            border-radius: var(--ui-radius-lg) !important;
+            box-shadow: var(--ui-shadow-lg) !important;
+        }
+        #recordModal > div > .bg-brand {
+            background: #123e5b !important;
+            padding-top: 14px !important;
+            padding-bottom: 14px !important;
+        }
+        #recordForm > .bg-amber-50 {
+            background: #fff8ee !important;
+            border-color: #f1dfc3 !important;
+        }
+        #recordForm > .bg-slate-50 { background: #f7f9fa !important; border-color: var(--ui-border) !important; }
+        #recordForm > .bg-brand-light { background: #f0f6f9 !important; border-color: #d4e3ea !important; }
+
+        /* ---------- login ---------- */
+        #login-overlay { background: rgba(16, 37, 51, .72) !important; backdrop-filter: blur(7px); }
+        #login-overlay > div {
+            border: 1px solid rgba(255,255,255,.75);
+            border-radius: 20px !important;
+            box-shadow: 0 24px 70px rgba(12, 31, 43, .28) !important;
+            padding: 34px !important;
+        }
+        #login-overlay .w-16.h-16 {
+            width: 58px !important;
+            height: 58px !important;
+            border-radius: 16px !important;
+            background: var(--ui-brand-soft) !important;
+        }
+        #login-overlay h2 { font-size: 1.35rem !important; line-height: 1.45 !important; }
+        #login-overlay button[type="submit"] { border-radius: 10px !important; box-shadow: none !important; }
+
+        /* ---------- confirm + toast ---------- */
+        #customConfirmModal .bg-red-100 { background: var(--ui-danger-bg) !important; }
+        #customConfirmModal .text-red-600 { color: #d94f54 !important; }
+        #customConfirmModal #confirm-ok-btn { background: #d94f54 !important; border-radius: 9px !important; }
+        #toast {
+            background: #173d55 !important;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 11px !important;
+            box-shadow: 0 12px 34px rgba(17, 45, 63, .22) !important;
+        }
+
+        /* ---------- responsive polish ---------- */
+        @media (max-width: 767px) {
+            main { padding: 14px 12px 28px !important; }
+            header > div:first-child { padding-left: 12px !important; padding-right: 12px !important; }
+            header > div:last-child { padding-left: 8px !important; padding-right: 8px !important; }
+            header [id^="nav-tab"] { padding-left: 12px !important; padding-right: 12px !important; }
+            #tab5 > div { padding: 12px !important; border-radius: 14px !important; }
+            #tab5 > div > .bg-white { padding: 14px !important; }
+            #tab1 > .grid > div { min-height: 104px; }
+            .dense-table th, .dense-table td { padding: 8px 9px !important; }
+        }
+
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- 全域讀取中遮罩 -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden flex-col justify-center items-center text-white">
+        <i class="fa-solid fa-spinner fa-spin text-5xl mb-4" style="color: #0077b6;"></i>
+        <div id="loading-msg" class="font-bold tracking-widest text-lg">系統處理中...</div>
+    </div>
+
+    <!-- 系統登入遮罩 (換行美化版) -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex justify-center items-center transition-opacity duration-500">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all">
+            <div class="text-brand w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-brand-light">
+                <i class="fa-solid fa-lock text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-black mb-1 leading-tight text-brand">致生涯．理未來<br>職涯輔導管理系統</h2>
+            <!-- 版本與更新時間標示 -->
+            <div class="text-[11px] font-mono text-slate-400 mb-5 bg-slate-50 py-1 px-2 rounded border border-slate-100 inline-block">
+                版本：2026年08月17日 22:55:44
+            </div>
+            <p class="text-xs text-slate-500 mb-6 font-bold">請輸入系統密碼以載入雲端資料庫</p>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <input type="password" id="login-password" required placeholder="請輸入密碼" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 ring-brand focus:outline-none text-center tracking-widest font-bold text-slate-700">
+                <button type="submit" id="login-btn" class="w-full bg-brand hover-bg-brand text-white font-bold py-3 rounded-lg transition-colors shadow-md flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-right-to-bracket"></i><span>登入系統</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 頂部導航列 (優化手機版) -->
+    <header class="bg-brand text-white shadow-md relative z-20">
+        <div class="max-w-[1400px] mx-auto px-4 py-3 flex flex-col md:flex-row gap-3 justify-between md:items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white font-bold p-2 rounded-lg text-xl flex items-center justify-center w-12 h-12 shadow text-brand">致</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">致生涯．理未來</h1>
+                    <p class="text-xs text-indigo-200 mt-0.5">職涯輔導管理系統</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between md:justify-end space-x-3 text-sm">
+                <div class="flex items-center space-x-1.5 rounded-md px-3 py-1.5 shadow-inner" style="background-color: rgba(2, 48, 71, 0.9); border: 1px solid #011c2a;">
+                    <i class="fa-solid fa-calendar-days text-amber-400"></i>
+                    <span class="font-medium text-xs" style="color: #e6edf1;">檢視年度：</span>
+                    <select id="global-year-select" onchange="changeGlobalYear(this.value)" class="font-bold text-xs rounded px-2 py-1 border focus:outline-none cursor-pointer" style="background-color: #011c2a; color: #fb8500; border-color: #023e8a;">
+                        <option value="2026" selected>2026 年度</option>
+                        <option value="2027">2027 年度</option>
+                        <option value="2025">2025 年度</option>
+                        <option value="ALL">跨年度 (總覽)</option>
+                    </select>
+                </div>
+                <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-md transition flex items-center space-x-1.5 border border-slate-500">
+                    <i class="fa-solid fa-power-off text-xs"></i><span class="text-xs">登出</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="max-w-[1400px] mx-auto px-4 flex space-x-1 pt-1 overflow-x-auto hide-scrollbar whitespace-nowrap" style="border-top: 1px solid rgba(255,255,255,0.2);">
+            <button onclick="switchTab('tab5')" id="nav-tab5" class="px-4 py-2.5 text-sm font-medium border-b-2 border-amber-400 text-white transition flex items-center space-x-2 shrink-0">
+                <i class="fa-regular fa-calendar-check"></i><span>首頁：當日行程</span>
+            </button>
+            <button onclick="switchTab('tab1')" id="nav-tab1" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
+                <i class="fa-solid fa-list-check"></i><span>頁一：服務預約</span>
+            </button>
+            <button onclick="switchTab('tab2')" id="nav-tab2" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
+                <i class="fa-solid fa-briefcase"></i><span>頁二：參與名單統整</span>
+            </button>
+            <button onclick="switchTab('tab3')" id="nav-tab3" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
+                <i class="fa-solid fa-chart-pie"></i><span>頁三：使用情形統計</span>
+            </button>
+            <button onclick="switchTab('tab4')" id="nav-tab4" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
+                <i class="fa-solid fa-database"></i><span>頁四：學生資料庫</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-[1400px] w-full mx-auto p-4 md:p-6 relative z-10">
+
+        <!-- Tab 5: 儀表板 -->
+        <section id="tab5" class="space-y-4">
+            <div class="bg-[#FDF9F1] rounded-2xl p-4 md:p-6 shadow-sm border border-[#EBE4D5] min-h-[600px] flex gap-6 flex-col md:flex-row">
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-[#EAE5DB] self-start md:w-1/3 shrink-0 w-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-3">
+                            <button onclick="changeCalendarMonth(-1)" class="text-slate-400 hover:text-slate-700 bg-slate-50 px-2 py-1 rounded"><i class="fa-solid fa-arrow-left"></i></button>
+                            <h3 class="text-base font-bold text-slate-800 flex items-center" id="cal-month-title">2026 年 8 月</h3>
+                            <button onclick="changeCalendarMonth(1)" class="text-slate-400 hover:text-slate-700 bg-slate-50 px-2 py-1 rounded"><i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                        <div class="text-[10px] font-bold text-slate-400 flex items-center space-x-1">
+                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: #ff686b;"></span>
+                            <span>有預約</span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
+                        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                    </div>
+                    <div id="calendar-grid" class="cal-grid text-sm text-slate-700 font-medium"></div>
+                </div>
+
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-[#EAE5DB] self-start md:w-2/3 flex-grow w-full">
+                    <div class="flex items-baseline space-x-3 mb-5 border-b border-slate-100 pb-3">
+                        <span id="agenda-header-title" class="text-[#D9534F] font-black text-2xl">今天</span>
+                        <span class="text-[#94A3B8] text-sm font-medium tracking-wide" id="agenda-today-date">2026 年 08 月 12 日 · 星期三</span>
+                    </div>
+                    <div id="agenda-today-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 1: 服務預約 -->
+        <section id="tab1" class="space-y-4 hidden">
+            <!-- 統計卡片 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div class="flex-grow">
+                        <div class="text-sm text-slate-500 font-medium">年度有效服務總結</div>
+                        <div class="flex items-end space-x-2 mt-1 mb-2">
+                            <div class="text-2xl font-bold text-slate-800 leading-none" id="kpi-total-students">0 人</div>
+                            <div class="text-sm font-bold bg-brand text-white px-2 py-0.5 rounded border leading-tight shadow-sm border-brand" id="kpi-total-sessions" title="計筆數主題(A,B,C)之有效服務">0 筆</div>
+                            <div class="text-sm font-bold px-2 py-0.5 rounded border leading-tight shadow-sm status-done-text status-done-bg" style="border-color: rgba(56, 176, 0, 0.2);" id="kpi-total-hours" title="計時數主題(D,E,F)之有效服務">0 h</div>
+                        </div>
+                        <div class="text-[11px] text-slate-500 flex flex-wrap gap-1.5" title="已結案資料之平均分數 (與有效筆數)">
+                            <span class="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">滿意 <span id="kpi-avg-x" class="font-bold text-brand">-</span></span>
+                            <span class="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">幫助 <span id="kpi-avg-y" class="font-bold text-brand">-</span></span>
+                            <span class="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">應用 <span id="kpi-avg-z" class="font-bold text-brand">-</span></span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-lg ml-2 shrink-0 bg-brand-light text-brand"><i class="fa-solid fa-users text-xl"></i></div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-red-100 flex items-center justify-between relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 status-danger-bg"></div>
+                    <div>
+                        <div class="text-sm font-bold status-danger-text">逾期未填紀錄</div>
+                        <div class="text-2xl font-bold text-slate-800 mt-1" id="kpi-overdue">0 筆</div>
+                        <div class="text-[10px] text-slate-400 mt-1">日期已過且未勾選完成</div>
+                    </div>
+                    <div class="p-3 rounded-lg status-danger-bg status-danger-text"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between relative overflow-hidden" style="border-color: #ffedd5;">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 status-warning-bg"></div>
+                    <div>
+                        <div class="text-sm font-bold status-warning-text">待結案 (缺問卷)</div>
+                        <div class="text-2xl font-bold text-slate-800 mt-1" id="kpi-missing-survey">0 筆</div>
+                        <div class="text-[10px] text-slate-400 mt-1">已結束主題但滿意度未齊</div>
+                    </div>
+                    <div class="p-3 rounded-lg status-warning-bg status-warning-text"><i class="fa-solid fa-file-circle-exclamation text-xl"></i></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-lg shadow-sm border border-slate-200 flex flex-wrap gap-3 justify-between items-center">
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div class="relative flex-1 md:w-72">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                        <input type="text" id="search-input" oninput="debouncedSearchTab1()" placeholder="搜尋案號、姓名、專業人員..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-md focus:outline-none focus:ring-1 ring-brand">
+                    </div>
+                    <select id="filter-status" onchange="tab1CurrentPage=1;renderTab1Table()" class="text-sm bg-slate-50 border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 ring-brand text-brand font-bold">
+                        <option value="">全部案件狀態</option>
+                        <option value="進行中">進行中</option>
+                        <option value="已結束 (缺紀錄)">已結束 (缺紀錄)</option>
+                        <option value="待結案 (缺問卷)">待結案 (缺問卷)</option>
+                        <option value="已結案">已結案</option>
+                        <option value="異常 (資料缺失)">異常 (資料缺失)</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+                    <button onclick="openRecordModal()" class="bg-brand hover-bg-brand text-white text-sm px-4 py-2 rounded-md transition flex items-center space-x-1.5 shadow-sm font-medium">
+                        <i class="fa-solid fa-plus"></i><span>新增服務預約</span>
+                    </button>
+                    <button onclick="exportTableToCSV('tab1-table', '服務預約紀錄.csv')" class="text-white text-sm px-3 py-2 rounded-md transition flex items-center space-x-1.5 font-medium shadow-sm" style="background-color: #38b000;">
+                        <i class="fa-solid fa-file-csv"></i><span>匯出 CSV</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white px-4 py-2.5 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center text-sm">
+                <div class="text-slate-600 font-medium" id="tab1-pagination-info">顯示資訊...</div>
+                <div class="flex flex-wrap items-center space-x-1" id="tab1-pagination-controls"></div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-visible">
+                <div class="overflow-x-auto max-h-[600px]">
+                    <table id="tab1-table" class="dense-table w-full text-center">
+                        <thead>
+                            <tr>
+                                <th class="text-center w-28">案件狀態</th>
+                                <th class="text-center w-24">學生代碼</th>
+                                <th class="text-center w-20">姓名</th>
+                                <th class="text-center w-20">專業人員</th>
+                                <th class="text-center">服務時間與紀錄勾稽 (最多 4 次)</th>
+                                <th class="text-center bg-indigo-50/50 w-24">
+                                    <div class="has-tooltip">
+                                        有效計量 <i class="fa-solid fa-circle-info text-[10px] text-slate-400 ml-1"></i>
+                                        <div class="tooltip-box tooltip-box-down text-xs">僅統計「日期已過」且「紀錄完成」之服務。</div>
+                                    </div>
+                                </th>
+                                <th class="text-left">分類主題</th>
+                                <th class="text-center bg-emerald-50/70 w-16">滿意(X)</th>
+                                <th class="text-center bg-emerald-50/70 w-16">幫助(Y)</th>
+                                <th class="text-center bg-emerald-50/70 w-16">應用(Z)</th>
+                                <th class="text-center w-16">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tab1-tbody" class="text-left"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 2: 參與名單統整 -->
+        <section id="tab2" class="space-y-4 hidden">
+            <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-3">
+                <div class="text-sm font-bold text-slate-700 flex items-center">
+                    <i class="fa-solid fa-clipboard-list text-brand mr-2"></i>
+                    參與活動之活躍名單 (與主資料庫同步)
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openAddStudentToTab2Modal()" class="text-white text-sm px-3 py-2 rounded-md transition flex items-center space-x-1.5 shadow-sm font-medium" style="background-color: #0077b6;">
+                        <i class="fa-solid fa-user-plus"></i><span>加入學生至清單</span>
+                    </button>
+                    <button onclick="openAddActivityModal()" class="bg-brand hover-bg-brand text-white text-sm px-3 py-2 rounded-md transition flex items-center space-x-1.5 shadow-sm font-medium">
+                        <i class="fa-solid fa-folder-plus"></i><span>新增活動欄位</span>
+                    </button>
+                    <button onclick="exportTableToCSV('tab2-table', '參與名單統整.csv')" class="text-white text-sm px-3 py-2 rounded-md transition flex items-center space-x-1.5 font-medium shadow-sm" style="background-color: #38b000;">
+                        <i class="fa-solid fa-file-csv"></i><span>匯出 CSV</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white px-4 py-2.5 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center text-sm">
+                <div class="text-slate-600 font-medium" id="tab2-pagination-info">顯示資訊...</div>
+                <div class="flex items-center space-x-1" id="tab2-pagination-controls"></div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative z-10">
+                <div class="overflow-x-auto max-w-[90vw]">
+                    <table id="tab2-table" class="dense-table w-full text-center">
+                        <thead id="tab2-thead"></thead>
+                        <tbody id="tab2-tbody"></tbody>
+                        <tfoot id="tab2-tfoot" class="bg-slate-50 font-semibold border-t-2 border-slate-300"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: 使用情形統計 -->
+        <section id="tab3" class="space-y-4 hidden">
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-slate-600 flex items-center">
+                        <i class="fa-solid fa-square-poll-vertical text-brand text-lg mr-2"></i>
+                        <span>本頁數據 <strong class="text-brand">100% 由頁一自動計算</strong>。</span>
+                    </div>
+                    <label class="flex items-center space-x-1.5 text-sm font-bold text-slate-700 cursor-pointer bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors">
+                        <input type="checkbox" id="tab3-hide-zero" onchange="renderTab3Table()" class="rounded text-brand focus:ring-brand cursor-pointer w-4 h-4">
+                        <span>過濾隱藏無紀錄主題</span>
+                    </label>
+                </div>
+                <button onclick="exportTableToCSV('tab3-table', '使用情形統計報表.csv')" class="text-white text-sm px-3 py-2 rounded-md transition flex items-center space-x-1.5 font-medium shadow-sm" style="background-color: #38b000;">
+                    <i class="fa-solid fa-file-csv"></i><span>匯出 CSV</span>
+                </button>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto max-h-[700px]">
+                    <table id="tab3-table" class="dense-table w-full text-left">
+                        <thead>
+                            <tr>
+                                <th>大類</th>
+                                <th>分類主題名稱</th>
+                                <th class="text-center bg-indigo-50 text-indigo-900 font-bold">申請案數 (人/案)</th>
+                                <th class="text-center bg-amber-50 text-amber-900 font-bold">有效服務量</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">自閉症</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">學習障礙</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">情緒障礙</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">身體病弱</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">智能障礙</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">聽覺障礙</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">視覺障礙</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">肢體障礙</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">腦性麻痺</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">多重障礙</th>
+                                <th class="bg-sky-50 text-center min-w-[50px]">其他障礙</th>
+                                <th class="bg-emerald-50 text-center w-16">滿意</th>
+                                <th class="bg-emerald-50 text-center w-16">幫助</th>
+                                <th class="bg-emerald-50 text-center w-16">應用</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tab3-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: 學生資料庫 -->
+        <section id="tab4" class="space-y-4 hidden">
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="p-3 rounded-xl text-brand bg-brand-light"><i class="fa-solid fa-database text-2xl"></i></div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800">學生主資料庫中心</h2>
+                        <p class="text-sm text-slate-500 mt-0.5" id="tab4-count-info">目前建檔學生總數：0 人</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="openBatchImportModal()" class="text-white text-sm px-4 py-2 rounded-md transition flex items-center space-x-1.5 shadow-sm font-medium" style="background-color: #38b000;">
+                        <i class="fa-solid fa-file-import"></i><span>批次匯入 (3欄版)</span>
+                    </button>
+                    <button onclick="openStudentModal()" class="bg-brand hover-bg-brand text-white text-sm px-4 py-2 rounded-md transition flex items-center space-x-1.5 shadow-sm font-medium">
+                        <i class="fa-solid fa-user-plus"></i><span>單筆建檔</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-lg shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center">
+                <div class="relative flex-1 md:max-w-xs">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                    <input type="text" id="tab4-search" oninput="debouncedSearchTab4()" placeholder="搜尋代碼、姓名、科系..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-md focus:outline-none focus:ring-1 ring-brand">
+                </div>
+                <select id="tab4-filter-disability" onchange="document.getElementById('tab4-search').value=''; renderTab4Table()" class="text-sm bg-slate-50 border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 ring-brand">
+                    <option value="">全部特教類別</option>
+                    <option value="學習障礙">學習障礙</option><option value="自閉症">自閉症</option><option value="情緒行為障礙">情緒行為障礙</option>
+                    <option value="腦性麻痺">腦性麻痺</option><option value="肢體障礙">肢體障礙</option><option value="聽覺障礙">聽覺障礙</option>
+                    <option value="視覺障礙">視覺障礙</option><option value="智能障礙">智能障礙</option><option value="身體病弱">身體病弱</option>
+                    <option value="多重障礙">多重障礙</option><option value="其他障礙">其他障礙</option>
+                </select>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto max-h-[600px]">
+                    <table id="tab4-table" class="dense-table w-full text-center">
+                        <thead>
+                            <tr>
+                                <th class="text-center w-28">學生代碼</th>
+                                <th class="text-center w-32">姓名</th>
+                                <th class="text-center w-32">科系</th>
+                                <th class="text-center w-32">特教類別</th>
+                                <th class="text-center w-20">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tab4-tbody" class="text-left"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Record Modal -->
+    <div id="recordModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden my-8">
+            <div class="bg-brand text-white px-5 py-3.5 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center space-x-2" id="modalTitle">
+                    <i class="fa-solid fa-pen-to-square"></i><span>新增／編輯服務預約</span>
+                </h3>
+                <button type="button" onclick="closeRecordModal()" class="text-slate-300 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <form id="recordForm" onsubmit="handleFormSubmit(event)" class="p-5 space-y-4 text-sm">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block font-bold mb-1.5 text-slate-700">案件編號 (自動)</label>
+                        <input type="text" id="edit-record-id" readonly class="w-full p-2 border border-slate-300 rounded-md bg-slate-100 text-slate-500 font-mono cursor-not-allowed">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block font-medium mb-1.5 text-slate-700">學生姓名 <span class="text-red-500">*</span></label>
+                        <select id="modal-student-id" required class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 ring-brand bg-slate-50"></select>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-1.5 text-slate-700">專業人員 <span class="text-red-500">*</span></label>
+                        <input type="text" id="modal-counselor" required placeholder="如：柯怡如" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 ring-brand bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-1.5 text-slate-700">地點</label>
+                        <input type="text" id="modal-location" placeholder="如：資源教室" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 ring-brand bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-1.5 text-slate-700">分類主題 <span class="text-red-500">*</span></label>
+                        <select id="modal-topic" required onchange="handleTopicChange()" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 ring-brand bg-slate-50">
+                            <optgroup label="A.發展生涯自我概念">
+                                <option value="A1.自我探索">A1.自我探索</option><option value="A2.認識工作世界">A2.認識工作世界</option><option value="A3.探索職涯方向">A3.探索職涯方向</option><option value="A4.設定職涯目標">A4.設定職涯目標</option><option value="A5.發展職涯行動計畫">A5.發展職涯行動計畫</option><option value="A6.分析職能契合度">A6.分析職能契合度</option><option value="A7.職涯選擇與家庭期待">A7.職涯選擇與家庭期待</option>
+                            </optgroup>
+                            <optgroup label="B.增進求職準備度">
+                                <option value="B1.履歷與自傳撰寫">B1.履歷與自傳撰寫</option><option value="B2.面試準備與演練">B2.面試準備與演練</option><option value="B3.求職形象與服儀">B3.求職形象與服儀</option><option value="B4.作品集整理">B4.作品集整理</option><option value="B5.求職管道與就業資源">B5.求職管道與就業資源</option><option value="B6.求職策略規劃">B6.求職策略規劃</option><option value="B7.求職行動">B7.求職行動</option>
+                            </optgroup>
+                            <optgroup label="C.提升職場適應能力">
+                                <option value="C1.溝通表達">C1.溝通表達</option><option value="C2.人際互動">C2.人際互動</option><option value="C3.情緒管理">C3.情緒管理</option><option value="C4.壓力調適">C4.壓力調適</option><option value="C5.衝突應對">C5.衝突應對</option><option value="C6.問題解決">C6.問題解決</option><option value="C7.建立工作態度與職場責任感">C7.建立工作態度與職場責任感</option>
+                            </optgroup>
+                            <optgroup label="D.職能評估 (計時數)">
+                                <option value="D1.視覺功能評估">D1.視覺功能評估</option><option value="D2.檢核文書行政能力">D2.檢核文書行政能力</option>
+                            </optgroup>
+                            <optgroup label="E.職能培力 (計時數)">
+                                <option value="E1.職場模擬訓練">E1.職場模擬訓練</option>
+                            </optgroup>
+                            <optgroup label="F.職場體驗 (計時數)">
+                                <option value="F1.房務員體驗">F1.房務員體驗</option><option value="F2.庇護工場體驗">F2.庇護工場體驗</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 p-3 rounded-lg border border-amber-200 flex flex-wrap justify-between items-center gap-3">
+                    <label class="inline-flex items-center space-x-2 cursor-pointer font-bold text-amber-900" id="topic-ended-wrapper">
+                        <input type="checkbox" id="modal-topic-ended" onchange="reevaluateComputedStatus()" class="w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500 disabled:opacity-50">
+                        <span>已結束此主題服務（勾選後隱藏新增按鈕並啟動結案判定）</span>
+                    </label>
+                    <span id="computed-status-badge" class="px-3 py-1 rounded-full font-bold text-xs shadow-sm transition-colors duration-200 border">
+                        判定中...
+                    </span>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                        <label class="font-bold text-slate-800 flex items-center">
+                            <i class="fa-regular fa-clock text-brand mr-1.5"></i>服務時間與紀錄勾稽 (單一主題最多 4 次)
+                        </label>
+                        <button type="button" onclick="addTimeSlotInput()" id="add-slot-btn" class="bg-brand text-white hover-bg-brand px-3 py-1.5 rounded text-xs font-bold transition flex items-center space-x-1 shadow-sm">
+                            <i class="fa-solid fa-plus"></i><span>預約下一次</span>
+                        </button>
+                    </div>
+                    <div id="time-slots-container" class="space-y-2.5"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border bg-brand-light" style="border-color: #c9dbe4;">
+                    <div>
+                        <label class="block font-medium mb-1.5 text-brand">整體滿意 (X欄)</label>
+                        <select id="modal-score-x" onchange="reevaluateComputedStatus()" class="w-full p-2 border rounded-md bg-white text-slate-700" style="border-color: #c9dbe4;">
+                            <option value="未填">未填寫</option><option value="5">5分 (非常滿意)</option><option value="4">4分 (滿意)</option><option value="3">3分 (普通)</option><option value="2">2分 (不滿意)</option><option value="1">1分 (極不滿意)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-1.5 text-brand">發展幫助 (Y欄)</label>
+                        <select id="modal-score-y" onchange="reevaluateComputedStatus()" class="w-full p-2 border rounded-md bg-white text-slate-700" style="border-color: #c9dbe4;">
+                            <option value="未填">未填寫</option><option value="5">5分 (極有幫助)</option><option value="4">4分 (有幫助)</option><option value="3">3分 (普通)</option><option value="2">2分 (幫助不大)</option><option value="1">1分 (無幫助)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-1.5 text-brand">應用度 (Z欄)</label>
+                        <select id="modal-score-z" onchange="reevaluateComputedStatus()" class="w-full p-2 border rounded-md bg-white text-slate-700" style="border-color: #c9dbe4;">
+                            <option value="未填">未填寫</option><option value="5">5分 (高度應用)</option><option value="4">4分 (經常應用)</option><option value="3">3分 (普通)</option><option value="2">2分 (偶爾應用)</option><option value="1">1分 (無法應用)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium mb-1.5 text-slate-700">補充說明 (懸浮顯示)</label>
+                    <textarea id="modal-notes" rows="2" placeholder="針對狀況做摘要標註..." class="w-full p-2 border border-slate-300 rounded-md bg-slate-50 focus:ring-2 ring-brand"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+                    <button type="button" onclick="closeRecordModal()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md font-medium transition-colors">取消</button>
+                    <button type="submit" class="px-5 py-2.5 bg-brand hover-bg-brand text-white font-bold rounded-md flex items-center space-x-2 shadow-md transition-colors">
+                        <i class="fa-solid fa-floppy-disk"></i><span>儲存紀錄</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Modals -->
+    <div id="studentModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl border w-full max-w-md p-6">
+            <h3 class="font-bold text-base mb-4 border-b pb-3 flex items-center space-x-2 text-brand" id="studentModalTitle" data-mode="create">
+                <i class="fa-solid fa-user-plus"></i><span>單筆建檔學生基本資料</span>
+            </h3>
+            <form onsubmit="handleStudentSubmit(event)" class="space-y-4 text-sm">
+                <input type="hidden" id="edit-student-key">
+                <div>
+                    <label class="block font-bold mb-1">歸屬學年度 *</label>
+                    <select id="stu-year" required onchange="onStudentYearChange()" class="w-full p-2 border border-slate-300 rounded-md bg-slate-50 font-bold focus:ring-2 ring-brand">
+                        <option value="2026">2026 年度</option>
+                        <option value="2027">2027 年度</option>
+                        <option value="2025">2025 年度</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">代碼 (系統自動編號)</label>
+                    <input type="text" id="stu-id" class="w-full p-2 border border-slate-300 rounded-md bg-slate-100 text-slate-500 font-mono cursor-not-allowed" readonly placeholder="系統自動生成">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block font-bold mb-1">姓名 *</label><input type="text" id="stu-name" required class="w-full p-2 border rounded-md focus:ring-1 ring-brand"></div>
+                    <div><label class="block font-bold mb-1">科系 *</label><input type="text" id="stu-dept" required placeholder="如：財金系" class="w-full p-2 border rounded-md focus:ring-1 ring-brand"></div>
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">特教類別 *</label>
+                    <select id="stu-disability" required class="w-full p-2 border rounded-md focus:ring-1 ring-brand">
+                        <option value="學習障礙">學習障礙</option><option value="自閉症">自閉症</option><option value="情緒行為障礙">情緒行為障礙</option><option value="腦性麻痺">腦性麻痺</option><option value="肢體障礙">肢體障礙</option><option value="聽覺障礙">聽覺障礙</option><option value="視覺障礙">視覺障礙</option><option value="智能障礙">智能障礙</option><option value="身體病弱">身體病弱</option><option value="多重障礙">多重障礙</option><option value="其他障礙">其他障礙</option>
+                    </select>
+                </div>
+                <div class="flex space-x-3 pt-4 border-t"><button type="button" onclick="closeStudentModal()" class="w-1/2 py-2.5 bg-slate-200 rounded-md font-bold hover:bg-slate-300">取消</button><button type="submit" class="w-1/2 py-2.5 bg-brand hover-bg-brand text-white font-bold rounded-md">確認儲存</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Batch Import Modal -->
+    <div id="batchImportModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl border w-full max-w-lg p-6 space-y-4">
+            <h3 class="font-bold text-lg text-brand flex items-center mb-2 border-b pb-2">
+                <i class="fa-solid fa-file-excel mr-2"></i>批次匯入學生主資料庫
+            </h3>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">匯入至學年度</label>
+                <select id="batch-import-year" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-brand-light font-bold text-brand">
+                    <option value="2026">2026 年度</option>
+                    <option value="2027">2027 年度</option>
+                    <option value="2025">2025 年度</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">貼上 Excel 文字 (欄位順序：<b class="text-brand">姓名, 科系, 特教類別</b>)：</label>
+                <textarea id="batch-import-text" rows="8" placeholder="王小明&#9;企管系&#9;學習障礙&#10;李小華&#9;資管系&#9;自閉症" class="w-full border border-slate-300 rounded-lg p-3 text-sm font-mono focus:ring-2 ring-brand"></textarea>
+                <p class="text-[11px] text-slate-500 mt-1">※ 學生代碼將由系統依序自動編發（如 S2026-001）。缺少姓名的資料列將自動略過。</p>
+            </div>
+            <div class="flex justify-end space-x-3 pt-3 border-t">
+                <button type="button" onclick="closeBatchImportModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">取消</button>
+                <button type="button" onclick="processBatchImport()" class="btn-brand bg-brand hover-bg-brand text-white px-5 py-2 rounded-lg text-sm font-bold shadow">執行匯入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2 Add Modals -->
+    <div id="addStudentToTab2Modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl border w-full max-w-md p-6">
+            <h3 class="font-bold text-base mb-4 border-b pb-3 flex items-center space-x-2 text-brand">
+                <i class="fa-solid fa-user-plus"></i><span>加入學生至活躍名單</span>
+            </h3>
+            <form onsubmit="submitAddStudentToTab2(event)" class="space-y-4 text-sm">
+                <div>
+                    <p class="text-xs text-slate-500 mb-1 font-bold">歸屬學年度：</p>
+                    <select id="select-tab2-year" required class="w-full p-2 border rounded-md bg-slate-50 mb-3"></select>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 mb-1 font-bold">請選擇學生：</p>
+                    <select id="select-tab2-student" required class="w-full p-2 border rounded-md"></select>
+                </div>
+                <div class="flex space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeAddStudentToTab2Modal()" class="w-1/2 py-2 bg-slate-200 rounded-md font-bold hover:bg-slate-300">取消</button>
+                    <button type="submit" class="w-1/2 py-2 bg-brand hover-bg-brand text-white font-bold rounded-md">加入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addActivityModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl border w-full max-w-md p-6">
+            <h3 class="font-bold text-base mb-4 border-b pb-3 flex items-center space-x-2 text-brand"><i class="fa-solid fa-folder-plus"></i><span>新增活動欄位</span></h3>
+            <form onsubmit="handleAddActivitySubmit(event)" class="space-y-4 text-sm">
+                <div><label class="block font-bold mb-1">活動日期/備註</label><input type="text" id="new-act-date" placeholder="如：5/14" class="w-full p-2 border rounded-md focus:ring-1 ring-brand"></div>
+                <div><label class="block font-bold mb-1">活動名稱 *</label><input type="text" id="new-act-name" required class="w-full p-2 border rounded-md focus:ring-1 ring-brand"></div>
+                <div class="flex space-x-3 pt-4 border-t"><button type="button" onclick="closeAddActivityModal()" class="w-1/2 py-2 bg-slate-200 rounded-md font-bold">取消</button><button type="submit" class="w-1/2 py-2 bg-brand hover-bg-brand text-white font-bold rounded-md">新增</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editActivityModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl border w-full max-w-md p-6">
+            <h3 class="font-bold text-base mb-4 border-b pb-3 flex items-center space-x-2 text-brand"><i class="fa-solid fa-pen"></i><span>編輯活動欄位</span></h3>
+            <form onsubmit="handleEditActivitySubmit(event)" class="space-y-4 text-sm">
+                <input type="hidden" id="edit-act-index">
+                <div><label class="block font-bold mb-1">活動日期/備註</label><input type="text" id="edit-act-date" class="w-full p-2 border rounded-md focus:ring-1 ring-brand"></div>
+                <div><label class="block font-bold mb-1">活動名稱 *</label><input type="text" id="edit-act-name" required class="w-full p-2 border rounded-md focus:ring-1 ring-brand"></div>
+                <div class="flex justify-between items-center pt-4 border-t">
+                    <button type="button" onclick="deleteActivityColumn()" class="px-4 py-2 status-danger-bg status-danger-text font-bold rounded-md hover:opacity-80">刪除此欄</button>
+                    <div class="flex space-x-2"><button type="button" onclick="closeEditActivityModal()" class="px-4 py-2 bg-slate-200 rounded-md font-bold">取消</button><button type="submit" class="px-4 py-2 bg-brand hover-bg-brand text-white font-bold rounded-md">儲存</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm & Toast -->
+    <div id="customConfirmModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center z-[70] hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm p-5 space-y-4 text-slate-800">
+            <div class="flex items-center space-x-3 text-red-600"><div class="p-2.5 bg-red-100 rounded-full"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div><h3 class="font-bold text-lg" id="confirm-title">確認操作</h3></div>
+            <p class="text-sm text-slate-600 leading-relaxed" id="confirm-message">您確定要執行此動作嗎？無法復原。</p>
+            <div class="flex justify-end space-x-2.5 pt-3 border-t">
+                <button type="button" id="confirm-cancel-btn" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md text-sm">取消</button>
+                <button type="button" id="confirm-ok-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md text-sm shadow-sm">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 text-white px-5 py-3 rounded-lg shadow-xl text-sm flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-[80]">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i><span id="toast-msg" class="font-medium">訊息</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // API 連線與核心變數
+        // ==========================================
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbysJKf73XpylboQEMkgl0YnuLUzyVRFKC6EMfoJbtfMCjZLxkQ7BxdJo3Gi3MHTCWJk0A/exec";
+        let systemPassword = ""; 
+        let studentMasterDB = {}; 
+        let mockDataTab1 = []; 
+        let tab2StudentsMap = {};
+
+        async function callGAS(action, payload = {}, id = null) {
+            let backendAction = action;
+            if (action === 'getData') backendAction = 'login';
+
+            const reqBody = {
+                action: backendAction,
+                password: systemPassword,
+                payload: payload,
+                data: payload,
+                id: id || payload.id || payload.key
+            };
+
+            const res = await fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify(reqBody),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            });
+            const result = await res.json();
+            
+            if (result.status === 'success') {
+                return result.data || { records: result.records, students: result.students };
+            }
+            throw new Error(result.message);
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const pwdInput = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+            
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>驗證中...</span>`;
+            btn.disabled = true;
+            
+            try {
+                systemPassword = pwdInput;
+                let data = null;
+
+                try {
+                    data = await callGAS('login');
+                } catch (err) {
+                    if (err.message && err.message.includes('未知')) {
+                        data = await callGAS('getData');
+                    } else {
+                        throw err;
+                    }
+                }
+                
+                mockDataTab1 = data.records || [];
+                studentMasterDB = {};
+                
+                const studentsRaw = data.students || [];
+                if (Array.isArray(studentsRaw)) {
+                    studentsRaw.forEach(s => {
+                        const key = s.key || (s.id + '_' + s.year);
+                        studentMasterDB[key] = s;
+                    });
+                } else {
+                    studentMasterDB = studentsRaw;
+                }
+                
+                regenerateTab2StudentsMap(); 
+                
+                document.getElementById('login-overlay').classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => document.getElementById('login-overlay').classList.add('hidden'), 500);
+                
+                showToast('登入成功，資料已載入');
+                renderActiveTab();
+            } catch (err) {
+                showToast(err.message || '連線失敗或密碼錯誤', 'error');
+                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>登入系統</span>`;
+                btn.disabled = false;
+            }
+        }
+
+        function showLoading(show, msg = "系統處理中...") {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                document.getElementById('loading-msg').innerText = msg;
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            } else {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-icon').className = type === 'success' ? "fa-solid fa-circle-check text-emerald-400" : "fa-solid fa-circle-xmark text-red-400";
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+
+        function showConfirm(title, message, onConfirm) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            const modal = document.getElementById('customConfirmModal');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cleanup = () => { modal.classList.add('hidden'); cancelBtn.onclick = null; okBtn.onclick = null; };
+            cancelBtn.onclick = () => cleanup();
+            okBtn.onclick = () => { cleanup(); if(typeof onConfirm === 'function') onConfirm(); };
+            modal.classList.remove('hidden');
+        }
+
+        function regenerateTab2StudentsMap() {
+            tab2StudentsMap = {};
+            Object.values(studentMasterDB).forEach(s => {
+                if (s.tab2Data) {
+                    try {
+                        const t2 = JSON.parse(s.tab2Data);
+                        tab2StudentsMap[s.key || (s.id + '_' + s.year)] = {
+                            id: s.id, year: s.year, pretest: t2.pretest || "X", posttest: t2.posttest || "X", acts: t2.acts || {}, isManualAdd: t2.isManualAdd || false
+                        };
+                    } catch(e) { console.error("解析 tab2Data 失敗", e); }
+                }
+            });
+            mockDataTab1.forEach(r => {
+                const mapKey = r.studentId + '_' + r.year;
+                if(!tab2StudentsMap[mapKey]) {
+                    tab2StudentsMap[mapKey] = { id: r.studentId, year: r.year, pretest: "X", posttest: "X", acts: {}, isManualAdd: false };
+                }
+            });
+        }
+
+        let tab2Queue = new Set();
+        let tab2DebounceTimer = null;
+        function saveTab2DataToBackend(stuId, year) {
+            const key = stuId + '_' + year;
+            const stu = tab2StudentsMap[key];
+            if(!stu || !studentMasterDB[key]) return;
+            
+            studentMasterDB[key].tab2Data = JSON.stringify({
+                pretest: stu.pretest, posttest: stu.posttest, acts: stu.acts, isManualAdd: stu.isManualAdd
+            });
+            
+            tab2Queue.add(key);
+            clearTimeout(tab2DebounceTimer);
+            tab2DebounceTimer = setTimeout(async () => {
+                const keys = Array.from(tab2Queue);
+                tab2Queue.clear();
+                for (let k of keys) {
+                    try { await callGAS('saveStudent', studentMasterDB[k]); } catch(e) { console.error("Tab2 data save failed", e); }
+                }
+            }, 1000);
+        }
+
+        // 自動編號 (S年度-xxx 格式)
+        function generateNextStudentId(year) {
+            const list = Object.values(studentMasterDB).filter(s => String(s.year) === String(year));
+            let maxNum = 0;
+            const prefix = `S${year}-`;
+            list.forEach(s => {
+                if (String(s.id).startsWith(prefix)) {
+                    const num = parseInt(String(s.id).replace(prefix, ''), 10);
+                    if (!isNaN(num) && num > maxNum) maxNum = num;
+                }
+            });
+            return `${prefix}${String(maxNum + 1).padStart(3, '0')}`;
+        }
+
+        // 自動編號 (R年度-xxx 格式)
+        function generateNextRecordId(year) {
+            const list = mockDataTab1.filter(r => String(r.year) === String(year));
+            let maxNum = 0;
+            const prefix = `R${year}-`;
+            list.forEach(r => {
+                if (String(r.id).startsWith(prefix)) {
+                    const num = parseInt(String(r.id).replace(prefix, ''), 10);
+                    if (!isNaN(num) && num > maxNum) maxNum = num;
+                }
+            });
+            return `${prefix}${String(maxNum + 1).padStart(3, '0')}`;
+        }
+
+        function calculateTimeDiff(startStr, endStr) {
+            if (!startStr || !endStr) return 0;
+            try {
+                let s = startStr.split(':'), e = endStr.split(':');
+                let startHs = parseInt(s[0],10) + parseInt(s[1],10)/60;
+                let endHs = parseInt(e[0],10) + parseInt(e[1],10)/60;
+                if(endHs <= startHs) endHs += 24; 
+                return isNaN(endHs - startHs) ? 0 : (endHs - startHs);
+            } catch(err) { return 0; }
+        }
+
+        function formatDateWithWeekday(dateStr) {
+            if (!dateStr) return '';
+            let d = new Date(dateStr.replace(/-/g, '/'));
+            if (isNaN(d.getTime())) return dateStr;
+            const days = ['日','一','二','三','四','五','六'];
+            return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}(${days[d.getDay()]})`;
+        }
+
+        function debounce(func, delay = 250) {
+            let timer = null;
+            return function (...args) { clearTimeout(timer); timer = setTimeout(() => func.apply(this, args), delay); };
+        }
+        const debouncedSearchTab1 = debounce(() => { tab1CurrentPage = 1; renderTab1Table(); }, 250);
+        const debouncedSearchTab4 = debounce(() => renderTab4Table(), 250);
+
+        function exportTableToCSV(tableId, filename) {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            let csv = [];
+            table.querySelectorAll("tr").forEach(row => {
+                if(row.style.display === 'none') return; 
+                let rowData = [];
+                row.querySelectorAll("td, th").forEach(col => {
+                    let clone = col.cloneNode(true);
+                    clone.querySelectorAll('.tooltip-box').forEach(tt => tt.remove());
+                    let text = clone.innerText.replace(/\n/g, ' ').trim().replace(/"/g, '""'); 
+                    rowData.push(`"${text}"`);
+                });
+                if (rowData.length > 0) csv.push(rowData.join(","));
+            });
+            const blob = new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob); link.download = filename || "export.csv"; link.click();
+            showToast(`已匯出 ${filename}`);
+        }
+
+        let currentSelectedYear = '2026';
+        let tab1CurrentPage = 1, tab1PageSize = 10;
+        let tab2CurrentPage = 1, tab2PageSize = 10;
+        let isDisabilityStatsExpanded = false;
+        
+        const todayDate = new Date();
+        const d_today = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
+        let calCurrentYear = todayDate.getFullYear();
+        let calCurrentMonth = todayDate.getMonth();
+        let selectedDate = d_today;
+        
+        const disabilityCategories = ["學習障礙", "自閉症", "情緒行為障礙", "身體病弱", "智能障礙", "聽覺障礙", "視覺障礙", "肢體障礙", "腦性麻痺", "多重障礙", "其他障礙"];
+        let activitiesList = [
+            { id: "act_career", date: "全年", name: "職涯諮詢", isAuto: true, matchPrefixes: ['A', 'B', 'C'] },
+            { id: "act_assess", date: "全年", name: "職能評估", isAuto: true, matchPrefixes: ['D'] },
+            { id: "act_empower", date: "全年", name: "職能培力", isAuto: true, matchPrefixes: ['E'] },
+            { id: "act_exp", date: "全年", name: "職場體驗", isAuto: true, matchPrefixes: ['F'] }
+        ];
+
+        function changeGlobalYear(year) {
+            currentSelectedYear = year;
+            tab1CurrentPage = 1; tab2CurrentPage = 1;
+            if(year === 'ALL') { calCurrentYear = todayDate.getFullYear(); calCurrentMonth = todayDate.getMonth(); selectedDate = d_today; } 
+            else { calCurrentYear = parseInt(year, 10); calCurrentMonth = 7; selectedDate = `${calCurrentYear}-08-01`; }
+            showToast(`已切換至【${year === 'ALL' ? '跨年度' : year + ' 年度'}】`, 'info');
+            renderActiveTab(); 
+        }
+
+        function switchTab(tabId) {
+            ['tab5', 'tab1', 'tab2', 'tab3', 'tab4'].forEach(id => {
+                const sec = document.getElementById(id);
+                const btn = document.getElementById('nav-' + id);
+                if (id === tabId) {
+                    sec.classList.remove('hidden');
+                    btn.classList.add('border-amber-400', 'text-white');
+                    btn.classList.remove('border-transparent', 'text-slate-300');
+                } else {
+                    sec.classList.add('hidden');
+                    btn.classList.remove('border-amber-400', 'text-white');
+                    btn.classList.add('border-transparent', 'text-slate-300');
+                }
+            });
+            renderActiveTab();
+        }
+
+        function renderActiveTab() {
+            if(!document.getElementById('tab5').classList.contains('hidden')) renderTab5Dashboard();
+            if(!document.getElementById('tab1').classList.contains('hidden')) renderTab1Table();
+            if(!document.getElementById('tab2').classList.contains('hidden')) renderTab2Table();
+            if(!document.getElementById('tab3').classList.contains('hidden')) renderTab3Table();
+            if(!document.getElementById('tab4').classList.contains('hidden')) renderTab4Table();
+        }
+
+        function selectCalendarDate(dateStr) { selectedDate = dateStr; renderTab5Dashboard(); }
+        function changeCalendarMonth(offset) {
+            calCurrentMonth += offset;
+            if(calCurrentMonth > 11) { calCurrentMonth = 0; calCurrentYear++; }
+            if(calCurrentMonth < 0) { calCurrentMonth = 11; calCurrentYear--; }
+            selectedDate = `${calCurrentYear}-${String(calCurrentMonth + 1).padStart(2, '0')}-01`;
+            renderTab5Dashboard();
+        }
+        function changeCalendarYear(offset) {
+            calCurrentYear += offset;
+            const currentDay = new Date(selectedDate.replace(/-/g, '/')).getDate();
+            const daysInNewMonth = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+            const newDay = Math.min(currentDay, daysInNewMonth);
+            selectedDate = `${calCurrentYear}-${String(calCurrentMonth + 1).padStart(2, '0')}-${String(newDay).padStart(2, '0')}`;
+            renderTab5Dashboard();
+        }
+
+        function renderTab5Dashboard() {
+            const daysArr = ['日', '一', '二', '三', '四', '五', '六'];
+            const sDate = new Date(selectedDate.replace(/-/g, '/'));
+            document.getElementById('agenda-header-title').innerText = selectedDate === d_today ? "今天" : "行程";
+            document.getElementById('agenda-today-date').innerText = `${sDate.getFullYear()} 年 ${String(sDate.getMonth()+1).padStart(2,'0')} 月 ${String(sDate.getDate()).padStart(2,'0')} 日 · 星期${daysArr[sDate.getDay()]}`;
+            
+            let events = [];
+            mockDataTab1.filter(r => currentSelectedYear === 'ALL' || String(r.year) === String(currentSelectedYear)).forEach(r => {
+                r.sessions.forEach(s => {
+                    const stu = studentMasterDB[r.studentId + '_' + r.year] || {};
+                    events.push({ 
+                        recordId: r.id, date: s.date, title: r.topic, time: `${s.timeStart}-${s.timeEnd}`, 
+                        who: stu.name || r.studentId, location: r.location || "資源教室", counselor: r.counselor, year: r.year
+                    });
+                });
+            });
+            
+            const dayEvents = events.filter(e => e.date === selectedDate).sort((a,b) => a.time.localeCompare(b.time));
+            const todayList = document.getElementById('agenda-today-list');
+            
+            if(dayEvents.length === 0) {
+                todayList.innerHTML = `<div class="text-slate-400 text-sm py-12 text-center border-2 border-dashed border-slate-100 rounded-xl">這天沒有預約行程。</div>`;
+            } else {
+                todayList.innerHTML = dayEvents.map(e => `
+                    <div onclick="openRecordModal('${e.recordId}')" class="bg-[#F8F9FC] rounded-xl p-4 flex flex-wrap items-center justify-between border border-[#E9EEF7] gap-4 cursor-pointer hover:shadow-md hover:border-brand transition-all">
+                        <div class="flex items-center space-x-4 md:space-x-6 flex-1 min-w-[200px]">
+                            <div class="flex flex-col min-w-[80px]">
+                                <span class="text-[#D9534F] font-bold text-sm tracking-wide">${e.time}</span>
+                                <span class="text-slate-400 text-xs mt-0.5 font-medium flex items-center"><i class="fa-solid fa-location-dot mr-1"></i>${e.location}</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-[#2B3674] text-base leading-tight">${e.title}</span>
+                                ${currentSelectedYear === 'ALL' ? `<span class="bg-slate-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow-sm">${e.year}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <div class="bg-white text-brand px-3 py-1.5 rounded-md border text-sm font-bold shadow-sm"><i class="fa-regular fa-user mr-1.5"></i>${e.who}</div>
+                            <div class="bg-white text-slate-500 px-3 py-1.5 rounded-md border text-sm font-medium shadow-sm">${e.counselor}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('cal-month-title').innerText = `${calCurrentYear} 年 ${calCurrentMonth + 1} 月`;
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            const firstDay = new Date(calCurrentYear, calCurrentMonth, 1).getDay();
+            const daysInMonth = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+            let eventMap = {};
+            events.forEach(e => {
+                const d = new Date(e.date.replace(/-/g, '/'));
+                if(d.getFullYear() === calCurrentYear && d.getMonth() === calCurrentMonth) {
+                    if(!eventMap[d.getDate()]) eventMap[d.getDate()] = 0;
+                    eventMap[d.getDate()]++;
+                }
+            });
+
+            const frag = document.createDocumentFragment();
+            for(let i=0; i<firstDay; i++) { let cell = document.createElement('div'); cell.className = 'cal-cell empty'; frag.appendChild(cell); }
+            const todayObj = new Date(d_today.replace(/-/g, '/'));
+            for(let i=1; i<=daysInMonth; i++) {
+                const currentDateStr = `${calCurrentYear}-${String(calCurrentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const isToday = (todayObj.getFullYear()===calCurrentYear && todayObj.getMonth()===calCurrentMonth && todayObj.getDate()===i);
+                const isSelected = currentDateStr === selectedDate;
+                const hasEvent = eventMap[i] > 0;
+                
+                let borderClass = isSelected ? 'border-brand bg-indigo-50 shadow-inner' : (isToday ? 'border-red-400' : 'border-transparent');
+                let cell = document.createElement('div');
+                cell.className = `cal-cell ${borderClass}`;
+                cell.onclick = () => selectCalendarDate(currentDateStr);
+                cell.innerHTML = `
+                    <div class="flex justify-center items-start w-full relative z-10">
+                        <span class="${isToday || isSelected ? 'font-bold' : ''} ${isToday && !isSelected ? 'text-red-500' : (isSelected ? 'text-brand' : '')}">${i}</span>
+                        ${hasEvent ? `<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full shrink-0" style="background-color: #ff686b;"></span>` : ''}
+                    </div>
+                    ${hasEvent ? `<div class="absolute bottom-1 w-[80%] left-1/2 transform -translate-x-1/2 ${isSelected ? 'bg-brand-light text-brand border-brand/30' : 'bg-slate-100 text-slate-500 border-slate-200'} text-[10px] font-bold px-1.5 py-0.5 rounded text-center whitespace-nowrap shadow-sm border z-0 leading-none">+${eventMap[i]}</div>` : ''}
+                `;
+                frag.appendChild(cell);
+            }
+            const totalCells = firstDay + daysInMonth;
+            for(let i = 0; i < (totalCells > 35 ? 42 : 35) - totalCells; i++) { let cell = document.createElement('div'); cell.className = 'cal-cell empty'; frag.appendChild(cell); }
+            grid.appendChild(frag);
+
+            if (currentSelectedYear === 'ALL') {
+                 document.getElementById('cal-month-title').innerHTML = `
+                    <div class="flex items-center space-x-1">
+                        <button onclick="changeCalendarYear(-1)" class="text-slate-400 hover:text-brand px-1"><i class="fa-solid fa-caret-left"></i></button>
+                        <span>${calCurrentYear} 年 ${calCurrentMonth + 1} 月</span>
+                        <button onclick="changeCalendarYear(1)" class="text-slate-400 hover:text-brand px-1"><i class="fa-solid fa-caret-right"></i></button>
+                    </div>`;
+            }
+        }
+
+        function computeRecordStatus(item) {
+            if (!item.topicEnded) return { text: "進行中", badgeClass: "status-ongoing-text status-ongoing-bg", sortWeight: 4 };
+            if (item.sessions.length === 0) return { text: "異常(資料缺失)", badgeClass: "status-danger-text status-danger-bg", sortWeight: 1 };
+            const allChecked = item.sessions.every(s => s.teacherFilled);
+            const scoresDone = item.scoreX !== '未填' && item.scoreY !== '未填' && item.scoreZ !== '未填';
+            if (allChecked && scoresDone) return { text: "已結案", badgeClass: "status-done-text status-done-bg", sortWeight: 5 };
+            if (allChecked && !scoresDone) return { text: "待結案(缺問卷)", badgeClass: "status-danger-text status-danger-bg", sortWeight: 2 };
+            return { text: "已結束(缺紀錄)", badgeClass: "status-warning-text status-warning-bg", sortWeight: 3 };
+        }
+
+        function updateKPIs(data) {
+            document.getElementById('kpi-total-students').innerText = `${new Set(data.map(i => i.studentId)).size} 人`;
+            let totalSessions = 0, totalHours = 0;
+            data.forEach(item => {
+                let isTimeBased = /^[DEF]/.test(item.topic);
+                item.sessions.forEach(s => {
+                    if (s.date <= d_today && s.teacherFilled) {
+                        if (isTimeBased) totalHours += calculateTimeDiff(s.timeStart, s.timeEnd);
+                        else totalSessions += 1;
+                    }
+                });
+            });
+            document.getElementById('kpi-total-sessions').innerText = `${totalSessions} 筆`;
+            document.getElementById('kpi-total-hours').innerText = `${totalHours.toFixed(1)} h`;
+
+            let closedCases = data.filter(item => computeRecordStatus(item).text === "已結案" && item.sessions.some(s => s.teacherFilled && s.date <= d_today));
+            const getAvgAndCount = (key) => {
+                let valid = closedCases.map(r => parseFloat(r[key])).filter(v => !isNaN(v));
+                if (valid.length === 0) return { avg: "-", count: 0 };
+                return { avg: (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1), count: valid.length };
+            };
+            let rx = getAvgAndCount('scoreX'), ry = getAvgAndCount('scoreY'), rz = getAvgAndCount('scoreZ');
+            document.getElementById('kpi-avg-x').innerHTML = `${rx.avg} <span class="text-slate-400 font-normal">(${rx.count})</span>`;
+            document.getElementById('kpi-avg-y').innerHTML = `${ry.avg} <span class="text-slate-400 font-normal">(${ry.count})</span>`;
+            document.getElementById('kpi-avg-z').innerHTML = `${rz.avg} <span class="text-slate-400 font-normal">(${rz.count})</span>`;
+
+            let overdueCount = 0, missingSurveyCount = 0;
+            data.forEach(item => {
+                if(item.sessions.some(s => s.date < d_today && !s.teacherFilled)) overdueCount++;
+                if(item.topicEnded && (item.scoreX === '未填' || item.scoreY === '未填' || item.scoreZ === '未填')) missingSurveyCount++;
+            });
+            document.getElementById('kpi-overdue').innerText = `${overdueCount} 筆`;
+            document.getElementById('kpi-missing-survey').innerText = `${missingSurveyCount} 筆`;
+        }
+
+        function renderTab1Table() {
+            const tbody = document.getElementById('tab1-tbody');
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const filterStatus = document.getElementById('filter-status').value;
+            tbody.innerHTML = '';
+
+            const yearlyData = mockDataTab1.filter(item => currentSelectedYear === 'ALL' || String(item.year) === String(currentSelectedYear));
+            updateKPIs(yearlyData);
+
+            let filtered = yearlyData.filter(item => {
+                const stu = studentMasterDB[item.studentId + '_' + item.year] || { name: item.studentId };
+                const st = computeRecordStatus(item);
+                const matchSearch = (stu.name || '').toLowerCase().includes(search) || 
+                                    (item.id || '').toLowerCase().includes(search) || 
+                                    (item.counselor || '').toLowerCase().includes(search);
+                const matchStatus = !filterStatus || st.text === filterStatus;
+                return matchSearch && matchStatus;
+            });
+
+            filtered.sort((a, b) => {
+                const wA = computeRecordStatus(a).sortWeight, wB = computeRecordStatus(b).sortWeight;
+                if (wA !== wB) return wA - wB;
+                return b.id.localeCompare(a.id);
+            });
+
+            const startIdx = (tab1CurrentPage - 1) * tab1PageSize;
+            const paged = filtered.slice(startIdx, startIdx + tab1PageSize);
+
+            const pageInfo = document.getElementById('tab1-pagination-info');
+            const pageControls = document.getElementById('tab1-pagination-controls');
+            if(filtered.length === 0) {
+                pageInfo.innerText = `查無資料`; pageControls.innerHTML = '';
+            } else {
+                pageInfo.innerText = `紀錄第 ${startIdx + 1} - ${Math.min(startIdx + tab1PageSize, filtered.length)} 筆，共 ${filtered.length} 筆`;
+                let btns = '';
+                for(let p=1; p<=Math.ceil(filtered.length/tab1PageSize); p++){
+                    btns += `<button onclick="tab1CurrentPage=${p};renderTab1Table()" class="px-2.5 py-1 mx-0.5 rounded text-xs font-bold transition-colors ${p===tab1CurrentPage?'bg-brand text-white shadow':'bg-slate-100 hover:bg-slate-200'}">${p}</button>`;
+                }
+                pageControls.innerHTML = btns;
+            }
+
+            const frag = document.createDocumentFragment();
+            paged.forEach(item => {
+                const stu = studentMasterDB[item.studentId + '_' + item.year] || { name: item.studentId };
+                const st = computeRecordStatus(item);
+                const isTimeBased = /^[DEF]/.test(item.topic);
+                let sortedSessions = [...item.sessions].sort((a,b) => a.date.localeCompare(b.date) || a.timeStart.localeCompare(b.timeStart));
+            
+                let sessionHtml = sortedSessions.map((s, idx) => {
+                    const isFuture = s.date > d_today;
+                    let icon = '';
+                    if (s.teacherFilled) icon = `<div class="has-tooltip"><i class="fa-solid fa-file-circle-check status-done-text text-lg cursor-help"></i><div class="tooltip-box tooltip-box-down text-xs w-max">紀錄完成</div></div>`;
+                    else if (isFuture) icon = `<div class="has-tooltip"><i class="fa-solid fa-file text-slate-300 text-lg cursor-help"></i><div class="tooltip-box tooltip-box-down text-xs w-max">未開始</div></div>`;
+                    else if (s.date === d_today) icon = `<div class="has-tooltip"><i class="fa-solid fa-file status-warning-text text-lg cursor-help"></i><div class="tooltip-box tooltip-box-down text-xs w-max">待勾稽</div></div>`;
+                    else icon = `<div class="has-tooltip"><i class="fa-solid fa-file-circle-xmark status-danger-text text-lg cursor-help"></i><div class="tooltip-box tooltip-box-down text-xs w-max">未完成</div></div>`;
+                    
+                    return `<div class="text-[12px] py-0.5 flex gap-2 justify-center items-center"><span class="text-slate-400 font-mono w-10 text-right">第${idx+1}次</span> <span class="w-24 text-center ${isFuture?'font-bold text-slate-900':'font-medium text-slate-500'}">${formatDateWithWeekday(s.date)}</span> <span class="w-24 text-center ${isFuture?'font-bold text-brand':'font-medium text-slate-500'}">(${s.timeStart}-${s.timeEnd})</span> <span class="w-12 text-center">${icon}</span></div>`;
+                }).join('');
+
+                let validSessions = item.sessions.filter(s => s.date <= d_today && s.teacherFilled);
+                let metricMain = isTimeBased 
+                    ? `<span class="status-done-text font-bold block">${validSessions.reduce((a, s) => a + calculateTimeDiff(s.timeStart, s.timeEnd), 0).toFixed(1)} <span class="text-[10px] font-normal">h</span></span>`
+                    : `<span class="text-brand font-bold block">${validSessions.length} <span class="text-[10px] font-normal">筆</span></span>`;
+
+                const getScore = (sc) => sc==='未填' ? `<span class="text-slate-400 font-normal">未填</span>` : `<span class="text-brand font-bold">${sc}</span>`;
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center align-middle">
+                        <div class="font-black text-[11px] mb-1 px-1.5 py-0.5 rounded inline-block ${st.badgeClass}">${st.text}</div>
+                        <div class="font-mono text-[10px] text-slate-400 font-bold">${item.id}</div>
+                    </td>
+                    <td class="text-center align-middle font-mono font-bold text-slate-500">${item.studentId}</td>
+                    <td class="text-center align-middle font-bold text-slate-800">${stu.name}</td>
+                    <td class="text-center align-middle text-slate-700">${item.counselor}</td>
+                    <td class="text-center align-middle py-1.5">${sessionHtml}</td>
+                    <td class="text-center align-middle font-bold bg-slate-50 border-x text-[11px]">${metricMain}</td>
+                    <td class="align-middle">
+                        <div class="has-tooltip">
+                            <span class="font-medium text-slate-800 underline decoration-brand/30 underline-offset-4 cursor-help hover:text-brand">${item.topic}</span>
+                            ${item.notes ? `<div class="tooltip-box tooltip-box-right"><div class="font-bold border-b border-blue-400 pb-1 mb-1"><i class="fa-solid fa-comment-dots mr-1"></i>補充說明</div><div class="leading-relaxed">${item.notes}</div></div>` : ''}
+                        </div>
+                    </td>
+                    <td class="text-center align-middle">${getScore(item.scoreX)}</td>
+                    <td class="text-center align-middle bg-slate-50/50">${getScore(item.scoreY)}</td>
+                    <td class="text-center align-middle bg-slate-50/50">${getScore(item.scoreZ)}</td>
+                    <td class="text-center align-middle">
+                        <button onclick="openRecordModal('${item.id}')" class="text-brand hover:opacity-70 p-1 mr-1"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteRecord('${item.id}')" class="status-danger-text hover:opacity-70 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                frag.appendChild(tr);
+            });
+            tbody.appendChild(frag);
+        }
+
+        function openRecordModal(editId = null) {
+            document.getElementById('recordForm').reset();
+            const sel = document.getElementById('modal-student-id');
+            const currentYear = document.getElementById('global-year-select').value;
+            const targetYear = currentYear === 'ALL' ? '2026' : currentYear;
+            
+            const studentsInView = Object.values(studentMasterDB).filter(s => String(s.year) === String(targetYear));
+            sel.innerHTML = '<option value="">請選擇學生...</option>' + studentsInView.map(s => `<option value="${s.id}">${s.id} - ${s.name} ${s.dept}</option>`).join('');
+            
+            document.getElementById('time-slots-container').innerHTML = '';
+            
+            if(editId) {
+                document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square"></i><span>編輯服務預約</span>';
+                const r = mockDataTab1.find(x => x.id === editId);
+                if(r) {
+                    document.getElementById('edit-record-id').value = r.id;
+                    sel.value = r.studentId; 
+                    document.getElementById('modal-counselor').value = r.counselor;
+                    document.getElementById('modal-location').value = r.location || '資源教室';
+                    document.getElementById('modal-topic').value = r.topic; 
+                    document.getElementById('modal-topic-ended').checked = r.topicEnded;
+                    document.getElementById('modal-score-x').value = r.scoreX; 
+                    document.getElementById('modal-score-y').value = r.scoreY;
+                    document.getElementById('modal-score-z').value = r.scoreZ; 
+                    document.getElementById('modal-notes').value = r.notes;
+                    let sSorted = [...r.sessions].sort((a,b) => a.date.localeCompare(b.date) || a.timeStart.localeCompare(b.timeStart));
+                    sSorted.forEach(s => addTimeSlotInput(s.date, s.timeStart, s.timeEnd, s.headcount, s.teacherFilled));
+                }
+            } else {
+                document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-plus"></i><span>新增服務預約</span>';
+                document.getElementById('edit-record-id').value = generateNextRecordId(targetYear);
+                document.getElementById('modal-location').value = '資源教室';
+                document.getElementById('modal-topic-ended').checked = false;
+                ['x','y','z'].forEach(k => document.getElementById(`modal-score-${k}`).value = '未填');
+                addTimeSlotInput(d_today, '10:00', '11:00', 1, false);
+            }
+            
+            handleTopicChange();
+            reevaluateComputedStatus();
+            document.getElementById('recordModal').classList.remove('hidden');
+        }
+
+        function closeRecordModal() { document.getElementById('recordModal').classList.add('hidden'); }
+        
+        function handleTopicChange() {
+            const isTimeBased = /^[DEF]/.test(document.getElementById('modal-topic').value);
+            document.querySelectorAll('.time-slot-item').forEach(item => {
+                const label = item.querySelector('.metric-label');
+                const startInput = item.querySelector('.time-start').value;
+                const endInput = item.querySelector('.time-end').value;
+                if(label) {
+                    if(isTimeBased) {
+                        label.style.display = 'inline-block';
+                        if (startInput && endInput) {
+                            const hrs = calculateTimeDiff(startInput, endInput);
+                            if (hrs <= 0) { label.innerText = `時間錯誤`; label.className = "metric-label text-[10px] font-bold text-white status-danger-bg px-1.5 py-0.5 rounded"; } 
+                            else { label.innerText = `${hrs.toFixed(1)} h`; label.className = "metric-label text-[10px] font-bold status-done-text bg-green-50 px-1.5 py-0.5 rounded border border-green-200"; }
+                        } else { label.innerText = `...`; label.className = "metric-label text-[10px] font-bold text-brand bg-slate-100 px-1.5 py-0.5 rounded"; }
+                    } else { label.style.display = 'none'; }
+                }
+            });
+        }
+
+        let draggedSlotItem = null;
+        function addTimeSlotInput(d='', tStart='', tEnd='', hc=1, checked=false) {
+            const container = document.getElementById('time-slots-container');
+            if(container.querySelectorAll('.time-slot-item').length >= 4) { showToast('單一主題最多只能建立 4 次服務', 'error'); return; }
+            
+            const div = document.createElement('div');
+            div.className = "time-slot-item flex flex-wrap items-center gap-2 bg-white p-2 rounded-md border shadow-sm";
+            div.draggable = true;
+            div.innerHTML = `
+                <div class="cursor-move text-slate-300 hover:text-brand px-1 py-2" title="拖曳排序"><i class="fa-solid fa-grip-vertical"></i></div>
+                <span class="font-bold text-slate-500 text-xs w-8 text-center slot-index">次</span>
+                <input type="date" value="${d}" required class="p-1 border rounded text-xs focus:ring-1 ring-brand text-center w-[110px]" onchange="checkFutureDate(this.closest('.time-slot-item'))">
+                <input type="time" value="${tStart}" onchange="handleTopicChange()" required class="time-start p-1 border rounded text-xs w-[90px] text-center focus:ring-1 ring-brand">
+                <span class="text-slate-400 font-bold">-</span>
+                <input type="time" value="${tEnd}" onchange="handleTopicChange()" required class="time-end p-1 border rounded text-xs w-[90px] text-center focus:ring-1 ring-brand">
+                <div class="flex flex-col items-center justify-center w-10"><span class="metric-label text-[10px] font-bold text-brand bg-slate-100 px-1.5 py-0.5 rounded">...</span></div>
+                <div class="flex items-center rounded border px-1.5 py-1 bg-slate-50 tooltip-container ml-1">
+                    <span class="text-[10px] text-slate-600 font-bold mr-1">總出席</span>
+                    <input type="number" min="0" value="${hc}" class="hc-input w-10 p-0.5 border rounded text-xs text-center font-bold focus:ring-1 ring-brand">
+                </div>
+                <label class="flex items-center space-x-1 ml-auto cursor-pointer">
+                    <input type="checkbox" ${checked?'checked':''} onchange="checkFutureDate(this.closest('.time-slot-item'))" class="teacher-check rounded text-brand h-4 w-4 focus:ring-brand cursor-pointer">
+                    <span class="text-[11px] font-bold text-brand check-text">紀錄完成</span>
+                </label>
+                <button type="button" onclick="this.closest('.time-slot-item').remove(); updateSlotIndices(); reevaluateComputedStatus();" class="text-slate-400 hover:text-red-500 ml-1 p-1 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            
+            div.addEventListener('dragstart', () => { draggedSlotItem = div; setTimeout(() => div.classList.add('dragging'), 0); });
+            div.addEventListener('dragend', () => { setTimeout(() => { div.classList.remove('dragging'); draggedSlotItem = null; }, 0); });
+            div.addEventListener('dragover', (e) => { e.preventDefault(); if(div !== draggedSlotItem) div.classList.add('drag-over'); });
+            div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+            div.addEventListener('drop', (e) => {
+                e.preventDefault(); div.classList.remove('drag-over');
+                if (div !== draggedSlotItem && draggedSlotItem) {
+                    const allItems = [...container.querySelectorAll('.time-slot-item')];
+                    if (allItems.indexOf(draggedSlotItem) < allItems.indexOf(div)) div.after(draggedSlotItem); else div.before(draggedSlotItem);
+                    updateSlotIndices();
+                }
+            });
+
+            container.appendChild(div);
+            updateSlotIndices();
+            checkFutureDate(div);
+            handleTopicChange();
+            reevaluateComputedStatus();
+        }
+
+        function checkFutureDate(slotDiv) {
+            const dateInput = slotDiv.querySelector('input[type="date"]');
+            const checkbox = slotDiv.querySelector('.teacher-check');
+            const text = slotDiv.querySelector('.check-text');
+            if (dateInput.value > d_today) {
+                if (checkbox.checked) { text.innerText = "提前勾稽"; text.className = "text-[11px] font-bold status-warning-text check-text"; } 
+                else { text.innerText = "尚未開始"; text.className = "text-[11px] font-bold text-slate-400 check-text"; }
+            } else {
+                text.innerText = "紀錄完成"; text.className = "text-[11px] font-bold text-brand check-text";
+            }
+            reevaluateComputedStatus();
+        }
+        function updateSlotIndices() { document.querySelectorAll('.time-slot-item').forEach((item, idx) => item.querySelector('.slot-index').innerText = `第${idx + 1}次`); }
+
+        function reevaluateComputedStatus() {
+            const badge = document.getElementById('computed-status-badge');
+            const endedCheckbox = document.getElementById('modal-topic-ended');
+            const items = document.querySelectorAll('.time-slot-item');
+            
+            if (items.length === 0) { endedCheckbox.checked = false; endedCheckbox.disabled = true; } 
+            else { endedCheckbox.disabled = false; }
+            document.getElementById('add-slot-btn').classList.toggle('opacity-50', endedCheckbox.checked || items.length >= 4);
+            document.getElementById('add-slot-btn').classList.toggle('pointer-events-none', endedCheckbox.checked || items.length >= 4);
+
+            let mockSessions = [];
+            items.forEach(i => mockSessions.push({ teacherFilled: i.querySelector('.teacher-check').checked }));
+            const mockRecord = {
+                topicEnded: endedCheckbox.checked, sessions: mockSessions,
+                scoreX: document.getElementById('modal-score-x').value,
+                scoreY: document.getElementById('modal-score-y').value,
+                scoreZ: document.getElementById('modal-score-z').value
+            };
+            
+            const statusObj = computeRecordStatus(mockRecord);
+            badge.innerHTML = `<i class="fa-solid fa-robot mr-1"></i>判定：${statusObj.text}`;
+            badge.className = `px-3 py-1 rounded-full font-bold text-xs shadow-sm border ${statusObj.badgeClass}`;
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('edit-record-id').value;
+            const items = document.querySelectorAll('.time-slot-item');
+            if(items.length === 0) { showToast('請至少新增一個服務時段', 'error'); return; }
+
+            let sessions = [], hasTimeError = false;
+            items.forEach(i => {
+                const d = i.querySelector('input[type="date"]').value;
+                const tStart = i.querySelector('.time-start').value.substring(0, 5); 
+                const tEnd = i.querySelector('.time-end').value.substring(0, 5);
+                if (calculateTimeDiff(tStart, tEnd) <= 0) hasTimeError = true;
+                if(d && tStart && tEnd && !hasTimeError) {
+                    sessions.push({ 
+                        date: d, timeStart: tStart, timeEnd: tEnd, 
+                        headcount: parseInt(i.querySelector('.hc-input').value, 10) || 0, 
+                        teacherFilled: i.querySelector('.teacher-check').checked 
+                    });
+                }
+            });
+            if (hasTimeError) { showToast('錯誤：結束時間不可早於開始時間', 'error'); return; }
+
+            const stuId = document.getElementById('modal-student-id').value;
+            const stuData = studentMasterDB[stuId + '_' + (document.getElementById('global-year-select').value === 'ALL' ? '2026' : document.getElementById('global-year-select').value)] || {year: '2026'};
+            const year = stuData.year;
+
+            const data = {
+                id: editId,
+                studentId: stuId, counselor: document.getElementById('modal-counselor').value,
+                location: document.getElementById('modal-location').value,
+                topic: document.getElementById('modal-topic').value, 
+                topicEnded: document.getElementById('modal-topic-ended').checked,
+                year: year, scoreX: document.getElementById('modal-score-x').value, 
+                scoreY: document.getElementById('modal-score-y').value, scoreZ: document.getElementById('modal-score-z').value, 
+                notes: document.getElementById('modal-notes').value, sessions: sessions
+            };
+
+            try {
+                showLoading(true, '儲存紀錄中...');
+                await callGAS('saveRecord', data);
+                const idx = mockDataTab1.findIndex(x => x.id === editId);
+                if(idx !== -1) mockDataTab1[idx] = data; else mockDataTab1.unshift(data);
+                showToast(idx !== -1 ? '紀錄已更新' : '紀錄已新增');
+                closeRecordModal(); renderActiveTab();
+            } catch(e) { showToast('儲存失敗', 'error'); } finally { showLoading(false); }
+        }
+
+        async function deleteRecord(id) {
+            showConfirm("確定刪除紀錄", `確定要刪除預約案號 ${id} 嗎？無法復原。`, async () => {
+                try {
+                    showLoading(true, '刪除資料中...');
+                    await callGAS('deleteRecord', { id });
+                    mockDataTab1 = mockDataTab1.filter(r => r.id !== id); 
+                    renderActiveTab(); showToast('紀錄已刪除');
+                } catch(e) { showToast('刪除失敗', 'error'); } finally { showLoading(false); }
+            });
+        }
+
+        function renderTab2Table() {
+            const tbody = document.getElementById('tab2-tbody');
+            const thead = document.getElementById('tab2-thead');
+            const tfoot = document.getElementById('tab2-tfoot');
+            
+            let thHtml = activitiesList.map((act, aIdx) => `
+                <th class="${act.isAuto ? 'bg-indigo-50/80 border-b-2 border-indigo-200' : 'bg-slate-100 hover:bg-slate-200 cursor-pointer'}" ${!act.isAuto ? `onclick="openEditActivityModal(${aIdx})"` : ''}>
+                    <div class="flex flex-col items-center">
+                        <div class="text-[10px] font-mono text-slate-500">${act.date}</div>
+                        <div class="font-bold ${act.isAuto ? 'text-indigo-900' : 'text-slate-800'} act-header-text">${act.name}</div>
+                    </div>
+                </th>`).join('');
+
+            thead.innerHTML = `<tr>
+                <th class="text-center bg-slate-100 z-20">學生代碼</th>
+                <th class="text-center bg-slate-100 z-20">姓名</th>
+                <th class="text-center bg-slate-100 z-20">科系</th>
+                <th class="text-center bg-slate-100 z-20">前測</th>
+                <th class="text-center bg-slate-100 z-20">後測</th>
+                ${thHtml}
+            </tr>`;
+
+            tbody.innerHTML = '';
+            let actsTotals = new Array(activitiesList.length).fill(0);
+            let disabTotals = {}; disabilityCategories.forEach(c => disabTotals[c] = new Array(activitiesList.length).fill(0));
+            const autoLinkData = {};
+            mockDataTab1.filter(i => currentSelectedYear === 'ALL' || String(i.year) === String(currentSelectedYear)).forEach(item => {
+                if (!autoLinkData[item.studentId]) autoLinkData[item.studentId] = {};
+                autoLinkData[item.studentId][item.topic.charAt(0)] = true;
+            });
+
+            const currentStudents = Object.values(tab2StudentsMap).filter(stu => currentSelectedYear === 'ALL' || String(stu.year) === String(currentSelectedYear));
+            const startIdx = (tab2CurrentPage - 1) * tab2PageSize;
+            const paged = currentStudents.slice(startIdx, startIdx + tab2PageSize);
+
+            document.getElementById('tab2-pagination-info').innerText = `活躍名單第 ${startIdx + 1} - ${Math.min(startIdx + tab2PageSize, currentStudents.length)} 筆，共 ${currentStudents.length} 人`;
+            let pageBtns = '';
+            for(let p=1; p<=Math.ceil(currentStudents.length/tab2PageSize); p++){
+                pageBtns += `<button onclick="tab2CurrentPage=${p};renderTab2Table()" class="px-2.5 py-1 mx-0.5 rounded text-xs font-bold transition-colors ${p===tab2CurrentPage ? 'bg-brand text-white shadow' : 'bg-slate-100 hover:bg-slate-200'}">${p}</button>`;
+            }
+            document.getElementById('tab2-pagination-controls').innerHTML = pageBtns;
+
+            currentStudents.forEach(stu => {
+                const dis = (studentMasterDB[stu.id + '_' + stu.year] || {}).disability || "其他障礙";
+                activitiesList.forEach((act, aIdx) => {
+                    let checked = act.isAuto ? act.matchPrefixes.some(p => autoLinkData[stu.id] && autoLinkData[stu.id][p]) : (stu.acts && stu.acts[act.id] === 1);
+                    if(checked) { actsTotals[aIdx]++; if(disabTotals[dis]) disabTotals[dis][aIdx]++; }
+                });
+            });
+
+            const frag = document.createDocumentFragment();
+            paged.forEach(stu => {
+                const master = studentMasterDB[stu.id + '_' + stu.year] || { name: "未知", dept: "-" };
+                let cellsHtml = activitiesList.map(act => {
+                    let checked = act.isAuto ? act.matchPrefixes.some(p => autoLinkData[stu.id] && autoLinkData[stu.id][p]) : (stu.acts && stu.acts[act.id] === 1);
+                    return `<td class="text-center"><input type="checkbox" ${checked?'checked':''} ${act.isAuto?'disabled':''} onchange="toggleActivity('${stu.id}', '${act.id}', '${stu.year}')" class="w-4 h-4 rounded text-brand focus:ring-brand cursor-pointer"></td>`;
+                }).join('');
+
+                const getBadge = (type, val) => `<select onchange="updateTest('${stu.id}', '${type}', this.value, '${stu.year}')" class="px-1.5 py-0.5 rounded text-xs font-bold w-12 shadow-sm border appearance-none text-center cursor-pointer hover:opacity-80 transition-all focus:outline-none ${val==='V'?"status-done-bg status-done-text":val==='X'?"status-danger-bg status-danger-text":"bg-slate-200 text-slate-600"}"><option value="V" ${val==='V'?'selected':''}>V</option><option value="X" ${val==='X'?'selected':''}>X</option><option value="N" ${val==='N'?'selected':''}>N</option></select>`;
+                
+                let tr = document.createElement('tr');
+                tr.innerHTML = `<td class="text-center font-mono font-bold text-slate-500">${stu.id}</td><td class="text-center font-bold text-brand">${master.name}</td><td class="text-center font-medium text-slate-700">${master.dept||'-'}</td><td class="text-center">${getBadge('pre', stu.pretest)}</td><td class="text-center">${getBadge('post', stu.posttest)}</td>${cellsHtml}`;
+                frag.appendChild(tr);
+            });
+            tbody.appendChild(frag);
+
+            let tfootHtml = `<tr onclick="isDisabilityStatsExpanded=!isDisabilityStatsExpanded;renderTab2Table()" class="bg-brand text-white font-bold cursor-pointer hover-bg-brand transition-colors"><td colspan="5" class="text-right py-2.5 px-4">合計總人次 (全體共 ${currentStudents.length} 人) <i class="fa-solid fa-chevron-${isDisabilityStatsExpanded?'up':'down'} ml-2" style="color: #fb8500;"></i></td>${actsTotals.map(v => `<td class="text-center text-lg border-t-2 border-white/20" style="color: #fb8500;">${v}</td>`).join('')}</tr>`;
+            if(isDisabilityStatsExpanded) {
+                disabilityCategories.forEach(dis => {
+                    tfootHtml += `<tr class="border-b"><td colspan="5" class="text-right py-1.5 px-4 font-semibold text-slate-700 bg-slate-100">${dis}</td>${disabTotals[dis].map(v => v>0 ? `<td class="text-center font-bold bg-cyan-100 text-cyan-900">${v}</td>` : `<td class="text-center text-slate-300 font-normal">${v}</td>`).join('')}</tr>`;
+                });
+            }
+            tfoot.innerHTML = tfootHtml;
+        }
+
+        function updateTest(stuId, type, val, year) { const stu = tab2StudentsMap[stuId + '_' + year]; if(stu) { if(type === 'pre') stu.pretest = val; else stu.posttest = val; saveTab2DataToBackend(stuId, year); } }
+        function toggleActivity(stuId, actId, year) { const stu = tab2StudentsMap[stuId + '_' + year]; if(stu) { if(!stu.acts) stu.acts = {}; stu.acts[actId] = stu.acts[actId] === 1 ? 0 : 1; saveTab2DataToBackend(stuId, year); } }
+
+        function openAddStudentToTab2Modal() {
+            const sel = document.getElementById('select-tab2-student');
+            const yearSel = document.getElementById('select-tab2-year');
+            const tgtYear = currentSelectedYear === 'ALL' ? '2026' : currentSelectedYear;
+            yearSel.innerHTML = `<option value="${tgtYear}">${tgtYear} 年度</option>`;
+            sel.innerHTML = '<option value="">請選擇學生...</option>';
+            Object.values(studentMasterDB).filter(s => String(s.year) === String(tgtYear)).forEach(s => {
+                if(!tab2StudentsMap[s.id + '_' + tgtYear]) sel.innerHTML += `<option value="${s.id}">${s.id} - ${s.name} (${s.disability})</option>`;
+            });
+            document.getElementById('addStudentToTab2Modal').classList.remove('hidden');
+        }
+        function closeAddStudentToTab2Modal() { document.getElementById('addStudentToTab2Modal').classList.add('hidden'); }
+        function submitAddStudentToTab2(e) {
+            e.preventDefault();
+            const id = document.getElementById('select-tab2-student').value;
+            const targetYear = document.getElementById('select-tab2-year').value;
+            if(!id) return;
+            tab2StudentsMap[id + '_' + targetYear] = { id: id, year: targetYear, pretest: "X", posttest: "X", acts: {}, isManualAdd: true };
+            saveTab2DataToBackend(id, targetYear);
+            showToast(`已加入清單`); closeAddStudentToTab2Modal(); renderActiveTab();
+        }
+
+        function openAddActivityModal() { document.getElementById('addActivityModal').classList.remove('hidden'); }
+        function closeAddActivityModal() { document.getElementById('addActivityModal').classList.add('hidden'); }
+        function handleAddActivitySubmit(e) {
+            e.preventDefault();
+            activitiesList.push({ id: 'act_new_'+Date.now(), date: document.getElementById('new-act-date').value.trim() || '全年', name: document.getElementById('new-act-name').value, isAuto: false });
+            showToast('活動已新增'); closeAddActivityModal(); renderActiveTab();
+        }
+
+        function openEditActivityModal(index) {
+            if(activitiesList[index].isAuto) return;
+            document.getElementById('edit-act-index').value = index;
+            document.getElementById('edit-act-date').value = activitiesList[index].date || '';
+            document.getElementById('edit-act-name').value = activitiesList[index].name;
+            document.getElementById('editActivityModal').classList.remove('hidden');
+        }
+        function closeEditActivityModal() { document.getElementById('editActivityModal').classList.add('hidden'); }
+        function handleEditActivitySubmit(e) {
+            e.preventDefault();
+            const idx = document.getElementById('edit-act-index').value;
+            activitiesList[idx].date = document.getElementById('edit-act-date').value.trim() || '全年';
+            activitiesList[idx].name = document.getElementById('edit-act-name').value.trim();
+            showToast('活動已更新'); closeEditActivityModal(); renderActiveTab();
+        }
+        function deleteActivityColumn() {
+            const idx = document.getElementById('edit-act-index').value;
+            const actName = activitiesList[idx].name;
+            const actId = activitiesList[idx].id;
+            showConfirm("刪除活動欄位", `確定要刪除「${actName}」嗎？`, () => {
+                activitiesList.splice(idx, 1);
+                Object.values(tab2StudentsMap).forEach(s => { 
+                    if(s.acts && s.acts[actId] !== undefined) { delete s.acts[actId]; saveTab2DataToBackend(s.id, s.year); }
+                });
+                showToast('活動欄位已刪除'); closeEditActivityModal(); renderActiveTab();
+            });
+        }
+
+        function renderTab3Table() {
+            const tbody = document.getElementById('tab3-tbody');
+            tbody.innerHTML = '';
+            const hideZero = document.getElementById('tab3-hide-zero').checked;
+            const cats = [
+                { g: "A.發展生涯", c: "A1.自我探索", code: "A1" }, { g: "A.發展生涯", c: "A2.認識工作世界", code: "A2" }, { g: "A.發展生涯", c: "A3.探索職涯方向", code: "A3" }, { g: "A.發展生涯", c: "A4.設定職涯目標", code: "A4" }, { g: "A.發展生涯", c: "A5.發展職涯行動計畫", code: "A5" }, { g: "A.發展生涯", c: "A6.分析職能契合度", code: "A6" }, { g: "A.發展生涯", c: "A7.職涯選擇與家庭期待", code: "A7" },
+                { g: "B.增進求職", c: "B1.履歷與自傳撰寫", code: "B1" }, { g: "B.增進求職", c: "B2.面試準備與演練", code: "B2" }, { g: "B.增進求職", c: "B3.求職形象與服儀", code: "B3" }, { g: "B.增進求職", c: "B4.作品集整理", code: "B4" }, { g: "B.增進求職", c: "B5.求職管道與就業資源", code: "B5" }, { g: "B.增進求職", c: "B6.求職策略規劃", code: "B6" }, { g: "B.增進求職", c: "B7.求職行動", code: "B7" },
+                { g: "C.提升職場", c: "C1.溝通表達", code: "C1" }, { g: "C.提升職場", c: "C2.人際互動", code: "C2" }, { g: "C.提升職場", c: "C3.情緒管理", code: "C3" }, { g: "C.提升職場", c: "C4.壓力調適", code: "C4" }, { g: "C.提升職場", c: "C5.衝突應對", code: "C5" }, { g: "C.提升職場", c: "C6.問題解決", code: "C6" }, { g: "C.提升職場", c: "C7.建立工作態度與職場責任感", code: "C7" },
+                { g: "D.職能評估", c: "D1.視覺功能評估", code: "D1", isTime: true }, { g: "D.職能評估", c: "D2.檢核文書行政能力", code: "D2", isTime: true },
+                { g: "E.職能培力", c: "E1.職場模擬訓練", code: "E1", isTime: true }, { g: "F.職場體驗", c: "F1.房務員體驗", code: "F1", isTime: true }, { g: "F.職場體驗", c: "F2.庇護工場體驗", code: "F2", isTime: true }
+            ];
+
+            const recs = mockDataTab1.filter(r => currentSelectedYear === 'ALL' || String(r.year) === String(currentSelectedYear));
+            const statsByCode = {};
+            cats.forEach(c => {
+                statsByCode[c.code] = {
+                    students: new Set(), applications: 0, totalSessions: 0, totalAttendance: 0, totalHours: 0,
+                    disCounts: { '學習障礙':0, '自閉症':0, '情緒行為障礙':0, '身體病弱':0, '智能障礙':0, '聽覺障礙':0, '視覺障礙':0, '肢體障礙':0, '腦性麻痺':0, '多重障礙':0, '其他障礙':0 },
+                    scores: { x: [], y: [], z: [] }
+                };
+            });
+
+            recs.forEach(r => {
+                const prefix = r.topic.split('.')[0];
+                if (!statsByCode[prefix]) return;
+                const stat = statsByCode[prefix];
+                stat.students.add(r.studentId);
+                stat.applications++;
+                const stuDis = (studentMasterDB[r.studentId + '_' + r.year] || {}).disability || '其他障礙';
+
+                r.sessions.forEach(s => {
+                    if (s.date <= d_today && s.teacherFilled) {
+                        stat.totalSessions++;
+                        stat.totalAttendance += (isNaN(parseInt(s.headcount, 10)) ? 0 : parseInt(s.headcount, 10));
+                        const diff = calculateTimeDiff(s.timeStart, s.timeEnd);
+                        if (/^[DEF]/.test(prefix)) { stat.totalHours += diff; if(stat.disCounts[stuDis] !== undefined) stat.disCounts[stuDis] += diff; } 
+                        else { if(stat.disCounts[stuDis] !== undefined) stat.disCounts[stuDis] += 1; }
+                    }
+                });
+                
+                if (r.scoreX && !isNaN(parseFloat(r.scoreX))) stat.scores.x.push(parseFloat(r.scoreX));
+                if (r.scoreY && !isNaN(parseFloat(r.scoreY))) stat.scores.y.push(parseFloat(r.scoreY));
+                if (r.scoreZ && !isNaN(parseFloat(r.scoreZ))) stat.scores.z.push(parseFloat(r.scoreZ));
+            });
+
+            const frag = document.createDocumentFragment();
+            cats.forEach(item => {
+                const stat = statsByCode[item.code];
+                if (hideZero && stat.totalSessions === 0) return;
+                
+                const col3 = `<span class="text-indigo-700 font-bold">${stat.students.size} <span class="text-[10px] font-normal text-indigo-400">人</span> / ${stat.applications} <span class="text-[10px] font-normal text-indigo-400">案</span></span>`;
+                const col4Title = item.isTime ? `${stat.totalSessions} <span>筆</span> <span class="text-emerald-700 ml-0.5">(${stat.totalHours.toFixed(1)} <span>h</span>)</span>` : `${stat.totalSessions} <span>筆</span>`;
+                const col4 = `<span class="text-amber-700 font-bold block">${col4Title}</span><span class="text-amber-900 block text-[10px] border-t pt-0.5 mt-0.5">出席人次: ${stat.totalAttendance} <span>人</span></span>`;
+                const countDis = (dis) => { let count = stat.disCounts[dis] || 0; if (item.isTime) return count > 0.05 ? `<span class="font-medium">${count.toFixed(1)}</span> <span class="text-[10px] text-slate-400">h</span>` : `<span class="text-slate-300">0.0</span>`; else return count > 0 ? `<span class="font-medium">${count}</span>` : `<span class="text-slate-300">0</span>`; };
+                const calcAvg = (key) => { let v = stat.scores[key]; if(v.length===0) return `<span class="text-slate-400 font-normal">未填</span>`; return `<div class="has-tooltip"><span class="border-b border-emerald-500 border-dashed cursor-help">${(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)}</span><div class="tooltip-box tooltip-box-down text-xs w-max">有效問卷: ${v.length} 份</div></div>`; };
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-slate-500 font-medium">${item.g}</td><td class="font-bold text-slate-800">${item.c}</td><td class="text-center bg-indigo-50/50 py-1.5">${col3}</td><td class="text-center bg-amber-50/50 py-1.5">${col4}</td>
+                    <td class="text-center bg-sky-50/30">${countDis('自閉症')}</td><td class="text-center bg-sky-50/30">${countDis('學習障礙')}</td><td class="text-center bg-sky-50/30">${countDis('情緒行為障礙')}</td><td class="text-center bg-sky-50/30">${countDis('身體病弱')}</td><td class="text-center bg-sky-50/30">${countDis('智能障礙')}</td><td class="text-center bg-sky-50/30">${countDis('聽覺障礙')}</td><td class="text-center bg-sky-50/30">${countDis('視覺障礙')}</td><td class="text-center bg-sky-50/30">${countDis('肢體障礙')}</td><td class="text-center bg-sky-50/30">${countDis('腦性麻痺')}</td><td class="text-center bg-sky-50/30">${countDis('多重障礙')}</td><td class="text-center bg-sky-50/30">${countDis('其他障礙')}</td>
+                    <td class="text-center font-bold text-emerald-700 bg-emerald-50/40">${calcAvg('x')}</td><td class="text-center font-bold text-emerald-700 bg-emerald-50/40">${calcAvg('y')}</td><td class="text-center font-bold text-emerald-700 bg-emerald-50/40">${calcAvg('z')}</td>
+                `;
+                frag.appendChild(tr);
+            });
+            tbody.appendChild(frag);
+        }
+
+        function renderTab4Table() {
+            const tbody = document.getElementById('tab4-tbody');
+            const search = document.getElementById('tab4-search').value.toLowerCase();
+            const filterDis = document.getElementById('tab4-filter-disability').value;
+            tbody.innerHTML = '';
+            let count = 0;
+            const frag = document.createDocumentFragment();
+
+            Object.values(studentMasterDB).forEach(s => {
+                if (currentSelectedYear !== 'ALL' && String(s.year) !== String(currentSelectedYear)) return;
+                const matchSearch = (s.id || '').toLowerCase().includes(search) || 
+                                    (s.name || '').toLowerCase().includes(search) || 
+                                    (s.dept || '').toLowerCase().includes(search);
+                const matchDis = !filterDis || s.disability === filterDis;
+                
+                if(matchSearch && matchDis) {
+                    count++;
+                    let yearBadge = currentSelectedYear === 'ALL' ? `<br><span class="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded shadow-inner mt-1 inline-block">${s.year} 年度</span>` : '';
+                    let tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors";
+                    tr.innerHTML = `<td class="font-mono font-bold text-slate-500 text-center align-middle">${s.id}${yearBadge}</td><td class="font-bold text-brand text-center align-middle">${s.name}</td><td class="font-bold text-slate-600 text-center align-middle">${s.dept}</td><td class="text-center align-middle"><span class="px-2 py-1 rounded text-xs font-medium border bg-brand-light text-brand border-brand/20">${s.disability}</span></td><td class="text-center space-x-2 align-middle"><button onclick="openStudentModal('${s.key || (s.id+'_'+s.year)}')" class="text-brand hover:opacity-70 text-sm font-bold p-1"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteStudent('${s.key || (s.id+'_'+s.year)}')" class="status-danger-text hover:opacity-70 text-sm font-bold p-1"><i class="fa-solid fa-trash"></i></button></td>`;
+                    frag.appendChild(tr);
+                }
+            });
+            tbody.appendChild(frag);
+            document.getElementById('tab4-count-info').innerText = currentSelectedYear === 'ALL' ? `目前總數：${count} 人 (跨年度)` : `目前總數：${count} 人 (${currentSelectedYear} 年度)`;
+        }
+
+        function onStudentYearChange() {
+            const currentYear = document.getElementById('stu-year').value;
+            if (document.getElementById('studentModalTitle').dataset.mode === 'create') {
+                document.getElementById('stu-id').value = generateNextStudentId(currentYear);
+            }
+        }
+
+        function openStudentModal(dbKey = null) {
+            const titleEl = document.getElementById('studentModalTitle');
+            const globalYear = document.getElementById('global-year-select').value;
+            const initialYear = (globalYear === 'ALL') ? '2026' : globalYear;
+
+            if (dbKey) {
+                const s = studentMasterDB[dbKey];
+                if (!s) return;
+                titleEl.innerHTML = '<i class="fa-solid fa-pen-to-square"></i><span>編輯學生基本資料</span>';
+                titleEl.dataset.mode = 'edit';
+                document.getElementById('edit-student-key').value = dbKey;
+                document.getElementById('stu-year').value = s.year;
+                document.getElementById('stu-year').disabled = true;
+                document.getElementById('stu-id').value = s.id;
+                document.getElementById('stu-name').value = s.name;
+                document.getElementById('stu-dept').value = s.dept;
+                document.getElementById('stu-disability').value = s.disability;
+            } else {
+                titleEl.innerHTML = '<i class="fa-solid fa-user-plus"></i><span>單筆建檔學生基本資料</span>';
+                titleEl.dataset.mode = 'create';
+                document.getElementById('edit-student-key').value = '';
+                document.getElementById('stu-year').value = initialYear;
+                document.getElementById('stu-year').disabled = false;
+                document.getElementById('stu-id').value = generateNextStudentId(initialYear);
+                document.getElementById('stu-name').value = '';
+                document.getElementById('stu-dept').value = '';
+                document.getElementById('stu-disability').value = '學習障礙';
+            }
+            document.getElementById('studentModal').classList.remove('hidden');
+        }
+
+        function closeStudentModal() { document.getElementById('studentModal').classList.add('hidden'); }
+
+        async function handleStudentSubmit(e) {
+            e.preventDefault();
+            const year = document.getElementById('stu-year').value;
+            const id = document.getElementById('stu-id').value;
+            const name = document.getElementById('stu-name').value.trim();
+            const dept = document.getElementById('stu-dept').value.trim();
+            const disability = document.getElementById('stu-disability').value;
+            const dbKey = document.getElementById('edit-student-key').value;
+            const isCreate = document.getElementById('studentModalTitle').dataset.mode === 'create';
+
+            const exists = Object.values(studentMasterDB).find(s => 
+                String(s.year) === String(year) && s.name === name && s.dept === dept && (!isCreate ? s.id !== id : true)
+            );
+            if (exists) { showToast(`該年度已存在 ${dept} ${name}，請勿重複建檔！`, 'error'); return; }
+
+            const key = isCreate ? (id + '_' + year) : dbKey;
+            const data = { key: key, id: id, name: name, dept: dept, disability: disability, year: year, tab2Data: (studentMasterDB[key] ? studentMasterDB[key].tab2Data : '') };
+
+            try {
+                showLoading(true, '儲存中...');
+                await callGAS('saveStudent', data);
+                studentMasterDB[key] = data;
+                showToast(isCreate ? '已成功建檔' : '學生資料已更新');
+                closeStudentModal(); renderActiveTab();
+            } catch(e) { showToast('儲存失敗', 'error'); } finally { showLoading(false); }
+        }
+
+        function deleteStudent(dbKey) {
+            const student = studentMasterDB[dbKey];
+            if(!student) return;
+            const { id, year } = student;
+            if(mockDataTab1.some(r => r.studentId === id && String(r.year) === String(year))) { showToast(`無法刪除：該學生在 ${year} 年度有歷史服務紀錄。`, 'error'); return; }
+            
+            const stuTab2 = tab2StudentsMap[dbKey];
+            if(stuTab2 && (stuTab2.isManualAdd || stuTab2.pretest !== 'X' || stuTab2.posttest !== 'X' || Object.values(stuTab2.acts).some(v => v === 1))) { showToast(`無法刪除：該學生在活躍名單中尚有無關聯紀錄，請先清除。`, 'error'); return; }
+            
+            showConfirm("刪除年度學生建檔", `確定要刪除 ${year} 年度的學生 ${id} 嗎？無法復原。`, async () => {
+                try {
+                    showLoading(true, '刪除中...');
+                    await callGAS('deleteStudent', { key: dbKey, id: id, year: year }); 
+                    delete studentMasterDB[dbKey]; 
+                    if(tab2StudentsMap[dbKey]) delete tab2StudentsMap[dbKey]; 
+                    showToast('學生已刪除'); renderActiveTab();
+                } catch(e) { showToast('刪除失敗', 'error'); } finally { showLoading(false); }
+            });
+        }
+
+        function openBatchImportModal() { 
+            const globalYear = document.getElementById('global-year-select').value;
+            document.getElementById('batch-import-year').value = globalYear === 'ALL' ? '2026' : globalYear;
+            document.getElementById('batch-import-text').value = '';
+            document.getElementById('batchImportModal').classList.remove('hidden'); 
+        }
+        function closeBatchImportModal() { document.getElementById('batchImportModal').classList.add('hidden'); }
+        
+        async function processBatchImport() {
+            const year = document.getElementById('batch-import-year').value;
+            const rawText = document.getElementById('batch-import-text').value.trim();
+            if (!rawText) { showToast('請先貼上資料！', 'error'); return; }
+
+            const lines = rawText.split('\n');
+            let toAdd = [], skipped = 0;
+            const prefix = `S${year}-`;
+            let maxNum = 0;
+
+            Object.values(studentMasterDB).filter(s => String(s.year) === String(year)).forEach(s => {
+                if (String(s.id).startsWith(prefix)) {
+                    const num = parseInt(String(s.id).replace(prefix, ''), 10);
+                    if (!isNaN(num) && num > maxNum) maxNum = num;
+                }
+            });
+
+            // 建立特教類別簡稱對應表
+            const disabilityMap = {
+                '學障': '學習障礙',
+                '自閉': '自閉症',
+                '星兒': '自閉症',
+                '情障': '情緒行為障礙',
+                '病弱': '身體病弱',
+                '智障': '智能障礙',
+                '聽障': '聽覺障礙',
+                '視障': '視覺障礙',
+                '肢障': '肢體障礙',
+                '腦麻': '腦性麻痺',
+                '多障': '多重障礙'
+            };
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                
+                // 1. 移除 .filter(Boolean)，保留空字串，維持固定索引位置
+                const cols = line.split(/[\t,]/).map(x => x.trim());
+                const name = (cols[0] || '').trim();
+                let dept = (cols[1] || '').trim();
+
+                if (!name) {
+                    skipped++;
+                    return;
+                }
+
+                dept = dept || '未填';
+
+                // 3. 智慧轉換特教簡稱
+                let rawDisability = (cols[2] || '').trim();
+                let mappedDisability = disabilityMap[rawDisability] || rawDisability;
+                const disability = disabilityCategories.includes(mappedDisability) ? mappedDisability : '其他障礙';
+
+                // 2. 移除嚴格的同名同系防重複檢查，避免誤殺
+                maxNum++;
+                const newId = `${prefix}${String(maxNum).padStart(3, '0')}`;
+                toAdd.push({ key: newId + '_' + year, id: newId, name: name, dept: dept, disability: disability, year: year, tab2Data: '' });
+            });
+
+            if (toAdd.length === 0) { showToast(`未匯入新資料。共略過 ${skipped} 筆格式錯誤的資料。`, 'info'); return; }
+
+            showLoading(true, `正在匯入 ${toAdd.length} 筆資料...`);
+            try {
+                // 確保 payload 結構為 { students: toAdd } 對齊後端期待
+                await callGAS('batchImportStudents', { students: toAdd });
+                toAdd.forEach(s => studentMasterDB[s.key] = s);
+                showToast(`匯入完成！成功新增 ${toAdd.length} 筆，略過 ${skipped} 筆錯誤格式。`);
+                closeBatchImportModal(); renderActiveTab();
+            } catch(e) { showToast('匯入失敗，請稍後重試', 'error'); } finally { showLoading(false); }
+        }
+
+        window.onload = function() {
+            switchTab('tab5');
+            document.getElementById('login-overlay').classList.remove('hidden');
+        };
+    </script>
+</body>
+</html>
