@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>致生涯．理未來 職涯輔導管理系統</title>
+    <!-- 網站 ICON / Favicon -->
+    <link rel="icon" type="image/x-icon" href="./assets/favicon.ico?v=20260916">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16x16.png?v=20260916">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32x32.png?v=20260916">
+    <link rel="icon" type="image/png" sizes="64x64" href="./assets/favicon-64x64.png?v=20260916">
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=20260916">
+    <link rel="manifest" href="./site.webmanifest?v=20260915">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -505,9 +513,7 @@
     <!-- 系統登入遮罩 (換行美化版) -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex justify-center items-center transition-opacity duration-500">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all">
-            <div class="text-brand w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-brand-light">
-                <i class="fa-solid fa-lock text-3xl"></i>
-            </div>
+            <div class="mx-auto mb-4 w-20 h-20 flex items-center justify-center"><img src="./assets/career-icon.png?v=20260916" alt="致生涯．理未來" class="w-full h-full object-contain rounded-2xl"></div>
             <h2 class="text-2xl font-black mb-1 leading-tight text-brand">致生涯．理未來<br>職涯輔導管理系統</h2>
             <!-- 版本與更新時間標示 -->
             <div class="text-[11px] font-mono text-slate-400 mb-5 bg-slate-50 py-1 px-2 rounded border border-slate-100 inline-block">
@@ -527,7 +533,7 @@
     <header class="bg-brand text-white shadow-md relative z-20">
         <div class="max-w-[1400px] mx-auto px-4 py-3 flex flex-col md:flex-row gap-3 justify-between md:items-center">
             <div class="flex items-center space-x-3">
-                <div class="bg-white font-bold p-2 rounded-lg text-xl flex items-center justify-center w-12 h-12 shadow text-brand">致</div>
+                <div class="w-12 h-12 shrink-0"><img src="./assets/career-icon.png?v=20260916" alt="致生涯．理未來" class="w-full h-full object-contain rounded-xl shadow"></div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight">致生涯．理未來</h1>
                     <p class="text-xs text-indigo-200 mt-0.5">職涯輔導管理系統</p>
@@ -1336,6 +1342,10 @@
             return normalized;
         }
 
+        function isScoreMissing(value) {
+            return value === '' || value === null || value === undefined || String(value).trim() === '未填';
+        }
+
         function calculateTimeDiff(startStr, endStr) {
             if (!startStr || !endStr) return 0;
             try {
@@ -1592,7 +1602,7 @@
             let overdueCount = 0, missingSurveyCount = 0;
             data.forEach(item => {
                 if(item.sessions.some(s => s.date < d_today && !s.teacherFilled)) overdueCount++;
-                if(item.topicEnded && (item.scoreX === '未填' || item.scoreY === '未填' || item.scoreZ === '未填')) missingSurveyCount++;
+                if(item.topicEnded && (isScoreMissing(item.scoreX) || isScoreMissing(item.scoreY) || isScoreMissing(item.scoreZ))) missingSurveyCount++;
             });
             document.getElementById('kpi-overdue').innerText = `${overdueCount} 筆`;
             document.getElementById('kpi-missing-survey').innerText = `${missingSurveyCount} 筆`;
@@ -1672,7 +1682,7 @@
                     </td>
                     <td class="text-center align-middle font-mono font-bold text-slate-500">${item.studentId}</td>
                     <td class="text-center align-middle font-bold text-slate-800">${stu.name}</td>
-                    <td class="text-center align-middle text-slate-700">${item.counselor}</td>
+                    <td class="text-center align-middle text-slate-700">${item.counselor || '未設定'}</td>
                     <td class="text-center align-middle py-1.5">${sessionHtml}</td>
                     <td class="text-center align-middle font-bold bg-slate-50 border-x text-[11px]">${metricMain}</td>
                     <td class="align-middle">
