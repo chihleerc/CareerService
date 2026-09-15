@@ -4,14 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>致生涯．理未來 職涯輔導管理系統</title>
-    <!-- 網站 ICON / Favicon -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="64x64" href="favicon-64x64.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-    <link rel="manifest" href="site.webmanifest">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -474,12 +466,6 @@
             border-radius: 16px !important;
             background: var(--ui-brand-soft) !important;
         }
-        #login-overlay .login-brand-icon {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-            display: block;
-        }
         #login-overlay h2 { font-size: 1.35rem !important; line-height: 1.45 !important; }
         #login-overlay button[type="submit"] { border-radius: 10px !important; box-shadow: none !important; }
 
@@ -519,11 +505,13 @@
     <!-- 系統登入遮罩 (換行美化版) -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex justify-center items-center transition-opacity duration-500">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all">
-            <div class="mx-auto mb-4 bg-white font-bold rounded-lg text-2xl flex items-center justify-center w-14 h-14 shadow text-brand border border-slate-100">致</div>
+            <div class="text-brand w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-brand-light">
+                <i class="fa-solid fa-lock text-3xl"></i>
+            </div>
             <h2 class="text-2xl font-black mb-1 leading-tight text-brand">致生涯．理未來<br>職涯輔導管理系統</h2>
             <!-- 版本與更新時間標示 -->
             <div class="text-[11px] font-mono text-slate-400 mb-5 bg-slate-50 py-1 px-2 rounded border border-slate-100 inline-block">
-                版本：2026年08月27日 22:51:00
+                版本：2026年09月15日 15:53:00
             </div>
             <p class="text-xs text-slate-500 mb-6 font-bold">請輸入系統密碼以載入雲端資料庫</p>
             <form onsubmit="handleLogin(event)" class="space-y-4">
@@ -1152,7 +1140,7 @@
                     }
                 }
                 
-                mockDataTab1 = data.records || [];
+                mockDataTab1 = (data.records || []).map(normalizeRecordDateTimes);
                 studentMasterDB = {};
                 
                 const studentsRaw = data.students || [];
@@ -1281,23 +1269,97 @@
             return `${prefix}${String(maxNum + 1).padStart(3, '0')}`;
         }
 
+
+        // ==========================================================
+        // GAS / Google Sheets 日期時間正規化
+        // 將 ISO DateTime（含 1899-12-30 的純時間）轉回台灣使用格式
+        // ==========================================================
+        function normalizeDateValue(value) {
+            if (value === null || value === undefined || value === '') return '';
+            const raw = String(value).trim();
+
+            // 已是 YYYY-MM-DD，直接保留
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+            const d = new Date(raw);
+            if (isNaN(d.getTime())) return raw;
+
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Taipei',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(d);
+
+            const y = parts.find(p => p.type === 'year')?.value;
+            const m = parts.find(p => p.type === 'month')?.value;
+            const day = parts.find(p => p.type === 'day')?.value;
+            return (y && m && day) ? `${y}-${m}-${day}` : raw;
+        }
+
+        function normalizeTimeValue(value) {
+            if (value === null || value === undefined || value === '') return '';
+            const raw = String(value).trim();
+
+            // 已是 HH:mm 或 HH:mm:ss
+            const plainTime = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+            if (plainTime) {
+                return `${String(plainTime[1]).padStart(2, '0')}:${plainTime[2]}`;
+            }
+
+            // GAS 對試算表「純時間」常回 1899-12-30T...Z
+            // 也兼容其他 ISO DateTime
+            const d = new Date(raw);
+            if (isNaN(d.getTime())) return raw;
+
+            return new Intl.DateTimeFormat('zh-TW', {
+                timeZone: 'Asia/Taipei',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).format(d).replace('24:', '00:');
+        }
+
+        function normalizeRecordDateTimes(record) {
+            if (!record || typeof record !== 'object') return record;
+
+            const normalized = { ...record };
+            normalized.sessions = Array.isArray(record.sessions)
+                ? record.sessions.map(session => ({
+                    ...session,
+                    date: normalizeDateValue(session.date),
+                    timeStart: normalizeTimeValue(session.timeStart),
+                    timeEnd: normalizeTimeValue(session.timeEnd)
+                }))
+                : [];
+
+            return normalized;
+        }
+
         function calculateTimeDiff(startStr, endStr) {
             if (!startStr || !endStr) return 0;
             try {
-                let s = startStr.split(':'), e = endStr.split(':');
+                const start = normalizeTimeValue(startStr);
+                const end = normalizeTimeValue(endStr);
+                let s = start.split(':'), e = end.split(':');
                 let startHs = parseInt(s[0],10) + parseInt(s[1],10)/60;
                 let endHs = parseInt(e[0],10) + parseInt(e[1],10)/60;
-                if(endHs <= startHs) endHs += 24; 
+                if(endHs <= startHs) endHs += 24;
                 return isNaN(endHs - startHs) ? 0 : (endHs - startHs);
             } catch(err) { return 0; }
         }
 
         function formatDateWithWeekday(dateStr) {
             if (!dateStr) return '';
-            let d = new Date(dateStr.replace(/-/g, '/'));
-            if (isNaN(d.getTime())) return dateStr;
+            const normalized = normalizeDateValue(dateStr);
+            const m = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!m) return normalized;
+
+            // 用中午建立日期，避免 UTC/本地時區跨日
+            const d = new Date(`${m[1]}-${m[2]}-${m[3]}T12:00:00+08:00`);
+            if (isNaN(d.getTime())) return normalized;
             const days = ['日','一','二','三','四','五','六'];
-            return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}(${days[d.getDay()]})`;
+            return `${m[1]}/${m[2]}/${m[3]}(${days[d.getDay()]})`;
         }
 
         function debounce(func, delay = 250) {
@@ -1592,7 +1654,7 @@
                     else if (s.date === d_today) icon = `<div class="has-tooltip"><i class="fa-solid fa-file status-warning-text text-lg cursor-help"></i><div class="tooltip-box tooltip-box-down text-xs w-max">待勾稽</div></div>`;
                     else icon = `<div class="has-tooltip"><i class="fa-solid fa-file-circle-xmark status-danger-text text-lg cursor-help"></i><div class="tooltip-box tooltip-box-down text-xs w-max">未完成</div></div>`;
                     
-                    return `<div class="text-[12px] py-0.5 flex gap-2 justify-center items-center"><span class="text-slate-400 font-mono w-10 text-right">第${idx+1}次</span> <span class="w-24 text-center ${isFuture?'font-bold text-slate-900':'font-medium text-slate-500'}">${formatDateWithWeekday(s.date)}</span> <span class="w-24 text-center ${isFuture?'font-bold text-brand':'font-medium text-slate-500'}">(${s.timeStart}-${s.timeEnd})</span> <span class="w-12 text-center">${icon}</span></div>`;
+                    return `<div class="text-[12px] py-0.5 flex gap-2 justify-center items-center"><span class="text-slate-400 font-mono w-10 text-right">第${idx+1}次</span> <span class="w-24 text-center ${isFuture?'font-bold text-slate-900':'font-medium text-slate-500'}">${formatDateWithWeekday(s.date)}</span> <span class="w-24 text-center ${isFuture?'font-bold text-brand':'font-medium text-slate-500'}">(${normalizeTimeValue(s.timeStart)}-${normalizeTimeValue(s.timeEnd)})</span> <span class="w-12 text-center">${icon}</span></div>`;
                 }).join('');
 
                 let validSessions = item.sessions.filter(s => s.date <= d_today && s.teacherFilled);
