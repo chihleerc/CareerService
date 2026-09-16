@@ -517,7 +517,7 @@
             <h2 class="text-2xl font-black mb-1 leading-tight text-brand">致生涯．理未來<br>職涯輔導管理系統</h2>
             <!-- 版本與更新時間標示 -->
             <div class="text-[11px] font-mono text-slate-400 mb-5 bg-slate-50 py-1 px-2 rounded border border-slate-100 inline-block">
-                版本：2026年09月15日 15:53:00
+                版本：2026年09月16日 11:14:00
             </div>
             <p class="text-xs text-slate-500 mb-6 font-bold">請輸入系統密碼以載入雲端資料庫</p>
             <form onsubmit="handleLogin(event)" class="space-y-4">
@@ -702,7 +702,7 @@
                                 <th class="text-center bg-emerald-50/70 w-16">滿意(X)</th>
                                 <th class="text-center bg-emerald-50/70 w-16">幫助(Y)</th>
                                 <th class="text-center bg-emerald-50/70 w-16">應用(Z)</th>
-                                <th class="text-center w-16">操作</th>
+                                <th class="text-center w-24">操作</th>
                             </tr>
                         </thead>
                         <tbody id="tab1-tbody" class="text-left"></tbody>
@@ -1567,7 +1567,7 @@
             if (!item.topicEnded) return { text: "進行中", badgeClass: "status-ongoing-text status-ongoing-bg", sortWeight: 4 };
             if (item.sessions.length === 0) return { text: "異常(資料缺失)", badgeClass: "status-danger-text status-danger-bg", sortWeight: 1 };
             const allChecked = item.sessions.every(s => s.teacherFilled);
-            const scoresDone = item.scoreX !== '未填' && item.scoreY !== '未填' && item.scoreZ !== '未填';
+            const scoresDone = !isScoreMissing(item.scoreX) && !isScoreMissing(item.scoreY) && !isScoreMissing(item.scoreZ);
             if (allChecked && scoresDone) return { text: "已結案", badgeClass: "status-done-text status-done-bg", sortWeight: 5 };
             if (allChecked && !scoresDone) return { text: "待結案(缺問卷)", badgeClass: "status-danger-text status-danger-bg", sortWeight: 2 };
             return { text: "已結束(缺紀錄)", badgeClass: "status-warning-text status-warning-bg", sortWeight: 3 };
@@ -1672,7 +1672,7 @@
                     ? `<span class="status-done-text font-bold block">${validSessions.reduce((a, s) => a + calculateTimeDiff(s.timeStart, s.timeEnd), 0).toFixed(1)} <span class="text-[10px] font-normal">h</span></span>`
                     : `<span class="text-brand font-bold block">${validSessions.length} <span class="text-[10px] font-normal">筆</span></span>`;
 
-                const getScore = (sc) => sc==='未填' ? `<span class="text-slate-400 font-normal">未填</span>` : `<span class="text-brand font-bold">${sc}</span>`;
+                const getScore = (sc) => isScoreMissing(sc) ? `<span class="text-slate-400 font-normal">未填</span>` : `<span class="text-brand font-bold">${sc}</span>`;
 
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -1695,8 +1695,35 @@
                     <td class="text-center align-middle bg-slate-50/50">${getScore(item.scoreY)}</td>
                     <td class="text-center align-middle bg-slate-50/50">${getScore(item.scoreZ)}</td>
                     <td class="text-center align-middle">
-                        <button onclick="openRecordModal('${item.id}')" class="text-brand hover:opacity-70 p-1 mr-1"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="deleteRecord('${item.id}')" class="status-danger-text hover:opacity-70 p-1"><i class="fa-solid fa-trash"></i></button>
+                        <div class="flex items-center justify-center gap-1">
+                            <div class="has-tooltip">
+                                <button onclick="openRecordModal('${item.id}')" class="text-brand hover:opacity-70 p-1" aria-label="編輯紀錄">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <div class="tooltip-box tooltip-box-down text-xs w-max">編輯紀錄</div>
+                            </div>
+                            ${item.topicEnded ? `
+                                <div class="has-tooltip">
+                                    <button type="button" disabled class="status-done-text p-1 cursor-default" aria-label="此主題已結束">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                    </button>
+                                    <div class="tooltip-box tooltip-box-down text-xs w-max">此主題已結束</div>
+                                </div>
+                            ` : `
+                                <div class="has-tooltip">
+                                    <button onclick="quickEndTopic('${item.id}')" class="text-slate-400 hover:text-emerald-600 p-1 transition-colors" aria-label="結束此主題服務">
+                                        <i class="fa-regular fa-circle-check"></i>
+                                    </button>
+                                    <div class="tooltip-box tooltip-box-down text-xs w-max">結束此主題服務</div>
+                                </div>
+                            `}
+                            <div class="has-tooltip">
+                                <button onclick="deleteRecord('${item.id}')" class="status-danger-text hover:opacity-70 p-1" aria-label="刪除紀錄">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                <div class="tooltip-box tooltip-box-right text-xs w-max">刪除紀錄</div>
+                            </div>
+                        </div>
                     </td>
                 `;
                 frag.appendChild(tr);
@@ -1897,6 +1924,47 @@
                 showToast(idx !== -1 ? '紀錄已更新' : '紀錄已新增');
                 closeRecordModal(); renderActiveTab();
             } catch(e) { showToast('儲存失敗', 'error'); } finally { showLoading(false); }
+        }
+
+        async function quickEndTopic(id) {
+            const item = mockDataTab1.find(r => String(r.id) === String(id));
+            if (!item) {
+                showToast('找不到此筆紀錄', 'error');
+                return;
+            }
+            if (item.topicEnded) {
+                showToast('此主題已經結束');
+                return;
+            }
+
+            showConfirm(
+                '結束此主題服務',
+                `確定要將案號 ${id} 標記為「已結束此主題服務」嗎？\n\n確認後將停止新增服務場次，並依紀錄完成度與問卷填寫情形自動判定案件狀態。`,
+                async () => {
+                    try {
+                        showLoading(true, '更新案件狀態中...');
+                        const updated = {
+                            ...item,
+                            topicEnded: true,
+                            sessions: Array.isArray(item.sessions) ? item.sessions.map(s => ({ ...s })) : []
+                        };
+
+                        await callGAS('saveRecord', updated);
+
+                        const idx = mockDataTab1.findIndex(r => String(r.id) === String(id));
+                        if (idx !== -1) mockDataTab1[idx] = normalizeRecordDateTimes(updated);
+
+                        renderActiveTab();
+                        const newStatus = computeRecordStatus(updated).text;
+                        showToast(`已結束此主題服務，目前狀態：${newStatus}`);
+                    } catch (e) {
+                        console.error('快速結束主題失敗', e);
+                        showToast('更新失敗，請稍後再試', 'error');
+                    } finally {
+                        showLoading(false);
+                    }
+                }
+            );
         }
 
         async function deleteRecord(id) {
