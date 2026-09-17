@@ -517,7 +517,7 @@
             <h2 class="text-2xl font-black mb-1 leading-tight text-brand">致生涯．理未來<br>職涯輔導管理系統</h2>
             <!-- 版本與更新時間標示 -->
             <div class="text-[11px] font-mono text-slate-400 mb-5 bg-slate-50 py-1 px-2 rounded border border-slate-100 inline-block">
-                版本：2026年09月16日 11:14:00
+                版本：2026年09月17日 09:57:00
             </div>
             <p class="text-xs text-slate-500 mb-6 font-bold">請輸入系統密碼以載入雲端資料庫</p>
             <form onsubmit="handleLogin(event)" class="space-y-4">
@@ -540,7 +540,10 @@
                 </div>
             </div>
             
-            <div class="flex items-center justify-between md:justify-end space-x-3 text-sm">
+            <div class="flex flex-wrap items-center justify-between md:justify-end gap-2 md:gap-3 text-sm">
+                <div class="text-[11px] font-mono text-slate-300 whitespace-nowrap px-2 py-1 rounded-md border border-white/10 bg-white/5">
+                    v1.0.0｜更新：2026/09/17 09:57
+                </div>
                 <div class="flex items-center space-x-1.5 rounded-md px-3 py-1.5 shadow-inner" style="background-color: rgba(2, 48, 71, 0.9); border: 1px solid #011c2a;">
                     <i class="fa-solid fa-calendar-days text-amber-400"></i>
                     <span class="font-medium text-xs" style="color: #e6edf1;">檢視年度：</span>
@@ -564,14 +567,14 @@
             <button onclick="switchTab('tab1')" id="nav-tab1" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
                 <i class="fa-solid fa-list-check"></i><span>頁一：服務預約</span>
             </button>
+            <button onclick="switchTab('tab4')" id="nav-tab4" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
+                <i class="fa-solid fa-database"></i><span>頁二：學生資料庫</span>
+            </button>
             <button onclick="switchTab('tab2')" id="nav-tab2" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
-                <i class="fa-solid fa-briefcase"></i><span>頁二：參與名單統整</span>
+                <i class="fa-solid fa-briefcase"></i><span>頁三：參與名單統整</span>
             </button>
             <button onclick="switchTab('tab3')" id="nav-tab3" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
-                <i class="fa-solid fa-chart-pie"></i><span>頁三：使用情形統計</span>
-            </button>
-            <button onclick="switchTab('tab4')" id="nav-tab4" class="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-300 hover:text-white transition flex items-center space-x-2 shrink-0">
-                <i class="fa-solid fa-database"></i><span>頁四：學生資料庫</span>
+                <i class="fa-solid fa-chart-pie"></i><span>頁四：使用情形統計</span>
             </button>
         </div>
     </header>
@@ -656,18 +659,25 @@
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                     <div class="relative flex-1 md:w-72">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
-                        <input type="text" id="search-input" oninput="debouncedSearchTab1()" placeholder="搜尋案號、姓名、專業人員..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-md focus:outline-none focus:ring-1 ring-brand">
+                        <input type="text" id="search-input" oninput="handleTab1FilterChange()" placeholder="搜尋案號、姓名、專業人員..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-md focus:outline-none focus:ring-1 ring-brand">
                     </div>
-                    <select id="filter-status" onchange="tab1CurrentPage=1;renderTab1Table()" class="text-sm bg-slate-50 border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 ring-brand text-brand font-bold">
+                    <select id="filter-status" onchange="handleTab1FilterChange()" class="text-sm bg-slate-50 border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 ring-brand text-brand font-bold">
                         <option value="">全部案件狀態</option>
                         <option value="進行中">進行中</option>
-                        <option value="已結束 (缺紀錄)">已結束 (缺紀錄)</option>
-                        <option value="待結案 (缺問卷)">待結案 (缺問卷)</option>
+                        <option value="已結束(缺紀錄)">已結束（缺紀錄）</option>
+                        <option value="待結案(缺問卷)">待結案（缺問卷）</option>
                         <option value="已結案">已結案</option>
-                        <option value="異常 (資料缺失)">異常 (資料缺失)</option>
+                        <option value="異常(資料缺失)">異常（資料缺失）</option>
                     </select>
                 </div>
-                <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                    <button id="batch-end-btn" onclick="batchEndSelectedTopics()" disabled
+                        class="hidden text-white text-sm px-3 py-2 rounded-md transition items-center space-x-1.5 font-medium shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        style="background-color:#0f766e;">
+                        <i class="fa-solid fa-check-double"></i>
+                        <span>結束所選主題</span>
+                        <span id="batch-end-count" class="ml-1 bg-white/20 rounded px-1.5 py-0.5 text-[11px]">0</span>
+                    </button>
                     <button onclick="openRecordModal()" class="bg-brand hover-bg-brand text-white text-sm px-4 py-2 rounded-md transition flex items-center space-x-1.5 shadow-sm font-medium">
                         <i class="fa-solid fa-plus"></i><span>新增服務預約</span>
                     </button>
@@ -687,6 +697,14 @@
                     <table id="tab1-table" class="dense-table w-full text-center">
                         <thead>
                             <tr>
+                                <th class="text-center w-10">
+                                    <div class="has-tooltip inline-flex">
+                                        <input id="select-all-filtered" type="checkbox"
+                                            onchange="toggleSelectAllFiltered(this.checked)"
+                                            class="w-4 h-4 accent-[#0f766e] cursor-pointer">
+                                        <div class="tooltip-box tooltip-box-down text-xs w-max">全選目前篩選結果中可結束的案件</div>
+                                    </div>
+                                </th>
                                 <th class="text-center w-28">案件狀態</th>
                                 <th class="text-center w-24">學生代碼</th>
                                 <th class="text-center w-20">姓名</th>
@@ -1402,6 +1420,8 @@
 
         let currentSelectedYear = '2026';
         let tab1CurrentPage = 1, tab1PageSize = 10;
+        const selectedRecordIds = new Set();
+        let currentFilteredRecordIds = [];
         let tab2CurrentPage = 1, tab2PageSize = 10;
         let isDisabilityStatsExpanded = false;
         
@@ -1608,6 +1628,110 @@
             document.getElementById('kpi-missing-survey').innerText = `${missingSurveyCount} 筆`;
         }
 
+        function handleTab1FilterChange() {
+            tab1CurrentPage = 1;
+            renderTab1Table();
+        }
+
+        function updateBatchSelectionUI() {
+            const btn = document.getElementById('batch-end-btn');
+            const countEl = document.getElementById('batch-end-count');
+            if (!btn || !countEl) return;
+
+            const eligibleSelected = [...selectedRecordIds].filter(id => {
+                const item = mockDataTab1.find(r => String(r.id) === String(id));
+                return item && !item.topicEnded;
+            });
+
+            countEl.textContent = String(eligibleSelected.length);
+            btn.disabled = eligibleSelected.length === 0;
+            btn.classList.toggle('hidden', eligibleSelected.length === 0);
+            btn.classList.toggle('flex', eligibleSelected.length > 0);
+
+            const selectAll = document.getElementById('select-all-filtered');
+            if (selectAll) {
+                const eligibleFiltered = currentFilteredRecordIds.filter(id => {
+                    const item = mockDataTab1.find(r => String(r.id) === String(id));
+                    return item && !item.topicEnded;
+                });
+                const selectedCount = eligibleFiltered.filter(id => selectedRecordIds.has(String(id))).length;
+                selectAll.checked = eligibleFiltered.length > 0 && selectedCount === eligibleFiltered.length;
+                selectAll.indeterminate = selectedCount > 0 && selectedCount < eligibleFiltered.length;
+                selectAll.disabled = eligibleFiltered.length === 0;
+            }
+        }
+
+        function toggleRecordSelection(id, checked) {
+            const key = String(id);
+            if (checked) selectedRecordIds.add(key);
+            else selectedRecordIds.delete(key);
+            updateBatchSelectionUI();
+        }
+
+        function toggleSelectAllFiltered(checked) {
+            const eligibleFiltered = currentFilteredRecordIds.filter(id => {
+                const item = mockDataTab1.find(r => String(r.id) === String(id));
+                return item && !item.topicEnded;
+            });
+
+            eligibleFiltered.forEach(id => {
+                const key = String(id);
+                if (checked) selectedRecordIds.add(key);
+                else selectedRecordIds.delete(key);
+            });
+            renderTab1Table();
+        }
+
+        async function batchEndSelectedTopics() {
+            const ids = [...selectedRecordIds].filter(id => {
+                const item = mockDataTab1.find(r => String(r.id) === String(id));
+                return item && !item.topicEnded;
+            });
+
+            if (ids.length === 0) {
+                showToast('目前沒有可批次結束的案件');
+                return;
+            }
+
+            showConfirm(
+                '批次結束主題服務',
+                `確定要將所選 ${ids.length} 筆案件標記為「已結束此主題服務」嗎？\n\n完成後會依紀錄與問卷狀況自動判定案件狀態。`,
+                async () => {
+                    try {
+                        showLoading(true, `批次更新 0 / ${ids.length} 筆...`);
+                        let done = 0;
+
+                        for (const id of ids) {
+                            const idx = mockDataTab1.findIndex(r => String(r.id) === String(id));
+                            if (idx === -1) continue;
+
+                            const updated = {
+                                ...mockDataTab1[idx],
+                                topicEnded: true,
+                                sessions: Array.isArray(mockDataTab1[idx].sessions)
+                                    ? mockDataTab1[idx].sessions.map(s => ({ ...s }))
+                                    : []
+                            };
+
+                            await callGAS('saveRecord', updated);
+                            mockDataTab1[idx] = normalizeRecordDateTimes(updated);
+                            selectedRecordIds.delete(String(id));
+                            done++;
+                            showLoading(true, `批次更新 ${done} / ${ids.length} 筆...`);
+                        }
+
+                        renderActiveTab();
+                        showToast(`已完成 ${done} 筆主題結束設定`);
+                    } catch (e) {
+                        console.error('批次結束主題失敗', e);
+                        showToast('批次更新中斷；已完成項目會保留，請重新整理確認', 'error');
+                    } finally {
+                        showLoading(false);
+                    }
+                }
+            );
+        }
+
         function renderTab1Table() {
             const tbody = document.getElementById('tab1-tbody');
             const search = document.getElementById('search-input').value.toLowerCase();
@@ -1631,6 +1755,12 @@
                 const wA = computeRecordStatus(a).sortWeight, wB = computeRecordStatus(b).sortWeight;
                 if (wA !== wB) return wA - wB;
                 return b.id.localeCompare(a.id);
+            });
+
+            currentFilteredRecordIds = filtered.map(item => String(item.id));
+            const filteredIdSet = new Set(currentFilteredRecordIds);
+            [...selectedRecordIds].forEach(id => {
+                if (!filteredIdSet.has(String(id))) selectedRecordIds.delete(String(id));
             });
 
             const startIdx = (tab1CurrentPage - 1) * tab1PageSize;
@@ -1676,6 +1806,14 @@
 
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
+                    <td class="text-center align-middle">
+                        <input type="checkbox"
+                            ${item.topicEnded ? 'disabled' : ''}
+                            ${selectedRecordIds.has(String(item.id)) ? 'checked' : ''}
+                            onchange="toggleRecordSelection('${item.id}', this.checked)"
+                            aria-label="選取 ${item.id}"
+                            class="w-4 h-4 accent-[#0f766e] ${item.topicEnded ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}">
+                    </td>
                     <td class="text-center align-middle">
                         <div class="font-black text-[11px] mb-1 px-1.5 py-0.5 rounded inline-block ${st.badgeClass}">${st.text}</div>
                         <div class="font-mono text-[10px] text-slate-400 font-bold">${item.id}</div>
@@ -1729,6 +1867,7 @@
                 frag.appendChild(tr);
             });
             tbody.appendChild(frag);
+            updateBatchSelectionUI();
         }
 
         function openRecordModal(editId = null) {
